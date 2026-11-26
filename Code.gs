@@ -16,7 +16,7 @@
  *    Who has access:  Anyone within Kementerian Pendidikan Malaysia (moe-dl.edu.my)
  */
 
-const VERSI = '1.0.3';
+const VERSI = '1.0.4';
 const NAMA_SEKOLAH = 'SM Sains Kuala Selangor';   // tukar mengikut sekolah anda
 const NAMA_FOLDER = 'PBDku - Laporan Murid';
 const TAB = { laporan: 'Laporan', admin: 'Admin', log: 'Log' };
@@ -76,6 +76,46 @@ function muatAwal() {
     murid: { nama: murid.nama, kelas: murid.kelas || (laporan[0] && laporan[0].kelas) || '' },
     laporan
   };
+}
+
+/**
+ * ADMIN: lihat paparan ibu bapa bagi seorang murid (tanpa perlu akaun DELIMa murid).
+ * @param {string} kunci  ID DELIMa, No. KP atau nama murid
+ */
+function lihatSebagaiIbuBapa(kunci) {
+  const emelAdmin = wajibAdmin_();
+  const q = String(kunci || '').trim();
+  if (!q) throw new Error('Sila masukkan ID DELIMa, No. KP atau nama murid.');
+  const s = senaraiMurid_().senarai;
+  const qEmel = q.toLowerCase(), qKp = q.replace(/\D/g, ''), qNama = normNama_(q);
+  let murid = s.find(m => m.delima === qEmel || m.delima === qEmel + '@moe-dl.edu.my')
+    || (qKp.length === 12 && s.find(m => m.kp === qKp))
+    || s.find(m => normNama_(m.nama) === qNama)
+    || (qNama.length >= 4 && s.find(m => normNama_(m.nama).indexOf(qNama) >= 0));
+  let amaran = '';
+  if (!murid) {   // tiada dalam senarai DELIMa — cuba cari dalam laporan yang dimuat naik
+    const r = bacaLaporan_().find(x => (qKp.length === 12 && x.kp === qKp) || normNama_(x.nama) === qNama
+      || (qNama.length >= 4 && normNama_(x.nama).indexOf(qNama) >= 0));
+    if (!r) throw new Error('Murid "' + q + '" tidak dijumpai dalam senarai DELIMa atau laporan.');
+    murid = { nama: r.nama, kp: r.kp, kelas: r.kelas, delima: '' };
+    amaran = 'Murid ini TIADA dalam senarai ID DELIMa — ibu bapa belum boleh log masuk. Tambah murid ke Sheet senarai.';
+  }
+  const laporan = laporanMurid_(murid, murid.delima || '-').map(r => ({
+    id: r.fileId, tajuk: r.tajuk, kelas: r.kelas, masa: tarikhIso_(r.masa), saiz: r.saiz
+  }));
+  log_(emelAdmin, 'PRATONTON_IBUBAPA', murid.nama);
+  return {
+    peranan: 'IBUBAPA', pratonton: true, amaran,
+    emel: murid.delima || '(tiada ID DELIMa)', versi: VERSI, sekolah: NAMA_SEKOLAH, url: ScriptApp.getService().getUrl(),
+    murid: { nama: murid.nama, kelas: murid.kelas || (laporan[0] && laporan[0].kelas) || '' },
+    laporan
+  };
+}
+
+/** ADMIN: senarai ringkas murid untuk pilihan pratonton. */
+function senaraiPratonton() {
+  wajibAdmin_();
+  return senaraiMurid_().senarai.map(m => ({ nama: m.nama, kelas: m.kelas, delima: m.delima }));
 }
 
 /** Muat turun satu laporan (base64). Ibu bapa hanya boleh ambil fail anak sendiri. */

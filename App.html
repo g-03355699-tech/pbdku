@@ -22,6 +22,7 @@ const IKON = {
   ic: '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M6 16c.5-1.5 1.7-2 3-2s2.5.5 3 2M14 10h4M14 13h4"/>',
   emel: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',
   anak: '<path d="M9 6l6 6-6 6"/>',
+  mata: '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
   tutup: '<path d="M6 6l12 12M18 6L6 18"/>',
   hati: '<path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/>',
   telefon: '<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>',
@@ -113,6 +114,7 @@ async function mula() {
 }
 
 function tukarAkaun() {
+  if (D && D.pratonton) return kembaliAdmin();
   const url = (D && D.url) || '';
   window.open('https://accounts.google.com/AccountChooser?continue=' + encodeURIComponent(url), '_top');
 }
@@ -138,6 +140,8 @@ function bukaTiada() {
 /* ======================= IBU BAPA ======================= */
 function bukaIbuBapa() {
   const m = D.murid;
+  $('bannerPratonton').classList.toggle('tersembunyi', !D.pratonton);
+  if (D.pratonton) $('pratontonTeks').textContent = D.amaran || 'Inilah paparan yang dilihat oleh ibu bapa apabila log masuk dengan ' + D.emel + '.';
   $('subTajuk').textContent = 'Laporan murid · ' + (D.sekolah || '');
   $('ibAvatar').textContent = initial(m.nama);
   $('ibNama').textContent = m.nama;
@@ -151,6 +155,29 @@ function bukaIbuBapa() {
     </div>`).join('')
     : '<div class="kosong">Belum ada laporan untuk anak anda.<br>Sila semak semula kemudian.</div>';
   paparan('vIbuBapa');
+}
+
+/* ---------- Pratonton admin sebagai ibu bapa ---------- */
+let DAdmin = null, senaraiPratontonDimuat = false;
+async function muatSenaraiPratonton() {
+  if (senaraiPratontonDimuat) return;
+  senaraiPratontonDimuat = true;
+  try {
+    const s = await run('senaraiPratonton');
+    $('senaraiPratonton').innerHTML = s.map(m => `<option value="${esc(m.nama)}">${esc(m.kelas)} \u00B7 ${esc(m.delima)}</option>`).join('');
+  } catch (e) { senaraiPratontonDimuat = false; }
+}
+async function mulaPratonton(kunci, btn) {
+  if (!String(kunci || '').trim()) return mesej('Pilih atau taip nama murid dahulu.', 'ralat');
+  await denganButang(btn, async () => {
+    const r = await run('lihatSebagaiIbuBapa', kunci);
+    DAdmin = D; D = r;
+    bukaIbuBapa(); window.scrollTo({ top: 0 });
+  }, 'Membuka\u2026');
+}
+function kembaliAdmin() {
+  if (!DAdmin) return mula();
+  D = DAdmin; DAdmin = null; bukaAdmin();
 }
 
 /* ======================= ADMIN ======================= */
@@ -414,7 +441,8 @@ function lukisLaporan() {
           <div class="isi"><div class="tajuk-r">${esc(r.nama)}</div>
             <div class="meta">${r.kp ? `<span>${ik('ic')}${esc(kpSeparuh(r.kp))}</span>` : ''}<span>${ik('kalendar')}${tarikhPapar(r.masa)}</span>
             ${r.delima ? `<span>${ik('emel')}${esc(r.delima)}</span>` : '<span style="color:var(--merah)">Tiada ID DELIMa</span>'}</div></div>
-          <div class="kanan"><button class="pautan" onclick="muatTurun(this,'${esc(r.id)}')">${ik('muatturun')}PDF</button>
+          <div class="kanan"><button class="pautan" onclick="mulaPratonton('${esc(r.kp || r.nama.replace(/['"\\]/g, ''))}', this)">${ik('mata')}Lihat</button>
+            <button class="pautan" onclick="muatTurun(this,'${esc(r.id)}')">${ik('muatturun')}PDF</button>
             <button class="padam" onclick="padam(['${esc(r.id)}'],'laporan ${esc(r.nama.replace(/['"\\]/g, ''))}')">${ik('padam')}Padam</button></div>
         </div>`).join('')}
         <button class="btn bahaya" onclick="padam(${esc(JSON.stringify(s.map(r => r.id)))},'${s.length} laporan ${esc(kls.replace(/['"\\]/g, ''))}')">${ik('padam')}Padam semua laporan kelas ini</button>

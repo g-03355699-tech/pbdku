@@ -163,6 +163,11 @@
     .contoh-jadual { width: 100%; border-collapse: collapse; font-size: .74rem; margin-top: 8px; background: #fff; border-radius: 8px; overflow: hidden; }
     .contoh-jadual th { background: var(--navy); color: #fff; font-weight: 500; text-align: left; padding: 6px 8px; }
     .contoh-jadual td { padding: 6px 8px; border-bottom: 1px solid var(--lencana); }
+    .banner-pratonton { display: flex; align-items: center; gap: 10px; background: #fff6dc; border: 1.5px solid #f2d27a; color: #7a5500;
+                        border-radius: 14px; padding: 10px 12px; margin-bottom: 12px; position: sticky; top: 6px; z-index: 6; }
+    .banner-pratonton .isi-p { flex: 1; min-width: 0; font-size: .8rem; line-height: 1.35; }
+    .banner-pratonton .isi-p b { display: block; font-size: .88rem; }
+    .banner-pratonton .btn { background: #7a5500; flex-shrink: 0; }
     .kod-kongsi { font-family: ui-monospace, monospace; font-size: .74rem; word-break: break-all; background: var(--jubin); padding: 8px 10px; border-radius: 8px; }
 
     .mesej { padding: 10px 12px; border-radius: 10px; margin-bottom: 12px; display: none; font-size: .9rem; overflow-wrap: anywhere; }
@@ -247,6 +252,11 @@
 
     <!-- ===================== IBU BAPA ===================== -->
     <div id="vIbuBapa" class="tersembunyi">
+      <div class="banner-pratonton tersembunyi" id="bannerPratonton">
+        <span data-ik="mata"></span>
+        <div class="isi-p"><b>Mod pratonton admin</b><span id="pratontonTeks">Inilah paparan yang dilihat oleh ibu bapa murid ini.</span></div>
+        <button class="btn kecil-b" onclick="kembaliAdmin()">Kembali ke admin</button>
+      </div>
       <section class="kad">
         <div class="kepala">
           <div class="avatar" id="ibAvatar"></div>
@@ -328,6 +338,14 @@
             <div class="isi-s"><b>Tutup semakan ibu bapa</b><span>Ibu bapa tidak boleh muat turun sehingga dibuka semula. Admin masih boleh guna.</span></div>
             <input type="checkbox" id="suisTutup" onchange="simpanTutup(this.checked)">
           </label>
+        </section>
+
+        <section class="kad">
+          <h2>Uji sebagai ibu bapa</h2>
+          <p class="kecil" style="margin-top:-6px">Lihat paparan ibu bapa bagi mana-mana murid tanpa akaun DELIMa murid.</p>
+          <div class="medan"><span data-ik="cari"></span><input id="cariPratonton" list="senaraiPratonton" placeholder="Nama murid, No. KP atau ID DELIMa" onfocus="muatSenaraiPratonton()" onkeydown="if(event.key==='Enter')mulaPratonton(this.value, $('btnPratonton'))"></div>
+          <datalist id="senaraiPratonton"></datalist>
+          <button class="btn" id="btnPratonton" onclick="mulaPratonton($('cariPratonton').value, this)"><span data-ik="mata"></span>Lihat sebagai ibu bapa</button>
         </section>
 
         <section class="kad">
