@@ -16,7 +16,7 @@
  *    Who has access:  Anyone within Kementerian Pendidikan Malaysia (moe-dl.edu.my)
  */
 
-const VERSI = '1.0.0';
+const VERSI = '1.0.1';
 const NAMA_SEKOLAH = 'SM Sains Kuala Selangor';   // tukar mengikut sekolah anda
 const NAMA_FOLDER = 'PBDku - Laporan Murid';
 const TAB = { laporan: 'Laporan', admin: 'Admin', log: 'Log' };
@@ -33,6 +33,16 @@ function doGet() {
     .setTitle('PBDku · SMSKS')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1, viewport-fit=cover')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.DEFAULT);
+}
+
+/** Kod JavaScript app (fail App.html) dihantar sebagai teks mentah.
+ *  getRawContent() mengelakkan HtmlService menolak / merosakkan kod JS ("Malformed HTML"). */
+function kodApp() {
+  try {
+    return HtmlService.createTemplateFromFile('App').getRawContent();
+  } catch (e) {
+    throw new Error('Fail "App" tidak dijumpai dalam projek Apps Script. Tekan + > HTML, namakan App (tanpa .html), tampal kandungan App.html, simpan dan deploy versi baharu. [' + ((e && e.message) || e) + ']');
+  }
 }
 
 /** Panggilan pertama dari halaman: kenal pasti pengguna & peranan. */

@@ -1,0 +1,493 @@
+/* PBDku - kod app (JavaScript). Dimuatkan oleh Index.html melalui google.script.run (kodApp). Jangan tambah tag script. */
+/* ---------- Ikon (set yang sama dengan Kelasku) ---------- */
+const IKON = {
+  cari: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>',
+  tambah: '<path d="M12 5v14M5 12h14"/>',
+  padam: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
+  wa: '<path d="M4 20l1.3-3.9A8 8 0 1 1 8 19z"/><path d="M9.2 8.6c-.4 2.9 2.8 6.4 6 6.3l.9-1.5-1.9-1-1 .7a4 4 0 0 1-2-2l.7-1-1-1.9z"/>',
+  tetapan: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
+  muatSemula: '<path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/>',
+  pengguna: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+  kunci: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+  muatnaik: '<path d="M12 16V4M7 9l5-5 5 5M4 20h16"/>',
+  muatturun: '<path d="M12 4v12M7 11l5 5 5-5M4 20h16"/>',
+  semak: '<path d="M5 12l5 5 9-10"/>',
+  amaran: '<path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.01"/>',
+  sheet: '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M4 9h16M4 15h16M10 3v18"/>',
+  pdf: '<path d="M6 2h9l5 5v15H6z"/><path d="M14 2v6h6"/>',
+  kelas: '<path d="M3 9l9-5 9 5-9 5z"/><path d="M7 11v5c3 2 7 2 10 0v-5"/>',
+  tampal: '<rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4V3h6v1M9 10h6M9 14h6"/>',
+  folder: '<path d="M3 6h6l2 2h10v11H3z"/>',
+  kalendar: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M8 3v4M16 3v4"/>',
+  ic: '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M6 16c.5-1.5 1.7-2 3-2s2.5.5 3 2M14 10h4M14 13h4"/>',
+  emel: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',
+  anak: '<path d="M9 6l6 6-6 6"/>',
+  tutup: '<path d="M6 6l12 12M18 6L6 18"/>',
+  hati: '<path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/>',
+  telefon: '<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>',
+  buku: '<path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19V5M8 7h7M8 11h7"/>'
+};
+const ik = (n, kelas) => `<svg class="ik${kelas ? ' ' + kelas : ''}" viewBox="0 0 24 24">${IKON[n] || ''}</svg>`;
+function pasangIkon(akar) { (akar || document).querySelectorAll('[data-ik]').forEach(el => { el.outerHTML = ik(el.dataset.ik, el.dataset.kelas); }); }
+
+/* ---------- Utiliti ---------- */
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const BULAN = ['Jan', 'Feb', 'Mac', 'Apr', 'Mei', 'Jun', 'Jul', 'Ogo', 'Sep', 'Okt', 'Nov', 'Dis'];
+const tarikhPapar = s => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s || ''); return m ? `${+m[3]} ${BULAN[+m[2] - 1]} ${m[1]}` : ''; };
+const initial = n => String(n || '').replace(/\b(BIN|BINTI|A\/L|A\/P|BT)\b/g, '').trim().split(/\s+/).slice(0, 2).map(s => s[0] || '').join('');
+const kpSeparuh = kp => kp ? String(kp).slice(0, 6) + '-••-••' + String(kp).slice(-2) : '';
+const normNama = s => String(s || '').toUpperCase().replace(/\b(BINTI|BIN|BT|B|A\/L|A\/P|AL|AP)\b/g, ' ').replace(/[^A-Z]/g, '');
+
+let pemasaMesej;
+function mesej(teks, jenis) {
+  const m = $('mesej'); m.textContent = teks; m.className = 'mesej ' + (jenis || 'ok');
+  clearTimeout(pemasaMesej); pemasaMesej = setTimeout(() => { m.className = 'mesej'; }, jenis === 'ralat' ? 8000 : 4000);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function run(fn, ...arg) {
+  return new Promise((ok, gagal) => {
+    google.script.run.withSuccessHandler(ok).withFailureHandler(e => {
+      const t = String((e && e.message) || e).replace(/^Error:\s*/, '');
+      gagal(new Error(t === 'TIADA_AKSES' ? 'Akaun ini tiada akses admin.' : t));
+    })[fn](...arg);
+  });
+}
+
+async function denganButang(btn, kerja, teks) {
+  const asal = btn.innerHTML; btn.disabled = true;
+  btn.innerHTML = `<span class="putar kecil putih"></span><span>${teks || 'Menyimpan…'}</span>`;
+  try { return await kerja(); } catch (e) { mesej(e.message, 'ralat'); } finally { btn.disabled = false; btn.innerHTML = asal; }
+}
+
+function sahkan({ tajuk, teks, ok = 'Padam', jenis = 'bahaya' }) {
+  return new Promise(selesai => {
+    $('sahTajuk').textContent = tajuk; $('sahTeks').textContent = teks || '';
+    $('sahIkon').innerHTML = ik(jenis === 'bahaya' ? 'amaran' : 'muatnaik');
+    $('sahIkon').className = 'ikon-amaran' + (jenis === 'bahaya' ? '' : ' ok');
+    $('sahOk').innerHTML = ok; $('sahOk').className = 'btn ' + (jenis === 'bahaya' ? 'merah' : '');
+    $('modalSah').classList.remove('tersembunyi');
+    const tamat = v => { $('modalSah').classList.add('tersembunyi'); selesai(v); };
+    $('sahOk').onclick = () => tamat(true); $('sahBatal').onclick = () => tamat(false);
+  });
+}
+
+function paparan(id) {
+  ['vMuat', 'vTiada', 'vIbuBapa', 'vAdmin'].forEach(v => $(v).classList.toggle('tersembunyi', v !== id));
+}
+
+/* ---------- Muat turun PDF (base64 → fail) ---------- */
+function simpanBase64(base64, namaFail) {
+  const bin = atob(base64), arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  const url = URL.createObjectURL(new Blob([arr], { type: 'application/pdf' }));
+  const a = document.createElement('a'); a.href = url; a.download = namaFail;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+async function muatTurun(btn, id) {
+  await denganButang(btn, async () => {
+    const r = await run('muatTurun', id);
+    simpanBase64(r.data, r.namaFail);
+    mesej('Laporan dimuat turun: ' + r.namaFail);
+  }, 'Memuat turun…');
+}
+
+/* ---------- Mula ---------- */
+let D = null;
+async function mula() {
+  paparan('vMuat');
+  try {
+    D = await run('muatAwal');
+    $('versi').textContent = 'v' + D.versi;
+    if (D.sekolah) $('subTajuk').textContent = 'Laporan murid untuk ibu bapa · ' + D.sekolah;
+    if (D.peranan === 'ADMIN') return bukaAdmin();
+    if (D.peranan === 'IBUBAPA') return bukaIbuBapa();
+    bukaTiada();
+  } catch (e) {
+    D = { peranan: 'TIADA', sebab: 'RALAT', ralat: e.message };
+    bukaTiada();
+  }
+}
+
+function tukarAkaun() {
+  const url = (D && D.url) || '';
+  window.open('https://accounts.google.com/AccountChooser?continue=' + encodeURIComponent(url), '_top');
+}
+
+function bukaTiada() {
+  const s = D.sebab;
+  const peta = {
+    TIADA_EMEL: ['kunci', 'Sila log masuk dengan akaun DELIMa', 'Laporan hanya boleh dibuka menggunakan akaun DELIMa anak anda (…@moe-dl.edu.my).'],
+    TIADA_MURID: ['amaran', 'Akaun tidak ditemui dalam senarai murid', 'Akaun DELIMa ini tiada dalam senarai murid. Pastikan anda log masuk dengan akaun DELIMa anak anda, bukan akaun ibu bapa, guru atau adik-beradik.'],
+    DITUTUP: ['kalendar', 'Semakan laporan ditutup', 'Tempoh muat turun laporan telah tamat atau belum dibuka. Sila hubungi guru kelas anak anda.'],
+    RALAT: ['amaran', 'Tidak dapat membuka PBDku', D.ralat || 'Ralat tidak diketahui.']
+  }[s] || ['amaran', 'Akaun tidak dikenal pasti', ''];
+  $('tiadaIkon').innerHTML = ik(peta[0]); $('tiadaTajuk').textContent = peta[1]; $('tiadaTeks').textContent = peta[2];
+  $('tiadaEmel').classList.toggle('tersembunyi', !D.emel);
+  $('tiadaEmel').innerHTML = D.emel ? ik('emel') + esc(D.emel) : '';
+  $('tiadaLangkah').innerHTML = s === 'DITUTUP' ? '' :
+    '<li>Tekan butang di bawah dan pilih / tambah akaun <b>DELIMa anak</b>.</li>' +
+    '<li>ID DELIMa biasanya bermula dengan <b>m-</b> dan berakhir <b>@moe-dl.edu.my</b>.</li>' +
+    '<li>Lupa kata laluan DELIMa? Hubungi guru kelas atau guru ICT sekolah.</li>';
+  paparan('vTiada');
+}
+
+/* ======================= IBU BAPA ======================= */
+function bukaIbuBapa() {
+  const m = D.murid;
+  $('subTajuk').textContent = 'Laporan murid · ' + (D.sekolah || '');
+  $('ibAvatar').textContent = initial(m.nama);
+  $('ibNama').textContent = m.nama;
+  $('ibLencana').innerHTML = (m.kelas ? `<span class="lencana">${esc(m.kelas)}</span>` : '') + `<span class="lencana">${esc(D.emel)}</span>`;
+  $('ibBil').textContent = D.laporan.length ? D.laporan.length + ' laporan' : '';
+  $('ibSenarai').innerHTML = D.laporan.length ? D.laporan.map(l => `
+    <div class="laporan-kad">
+      <div class="fail">${ik('pdf')}<i>PDF</i></div>
+      <div class="isi"><b>${esc(l.tajuk)}</b><span>${esc(l.kelas)} · ${tarikhPapar(l.masa)}${l.saiz ? ' · ' + l.saiz + ' KB' : ''}</span></div>
+      <button class="btn" onclick="muatTurun(this,'${esc(l.id)}')">${ik('muatturun')}Muat turun</button>
+    </div>`).join('')
+    : '<div class="kosong">Belum ada laporan untuk anak anda.<br>Sila semak semula kemudian.</div>';
+  paparan('vIbuBapa');
+}
+
+/* ======================= ADMIN ======================= */
+let tabSemasa = 'Naik';
+function bukaAdmin() {
+  $('subTajuk').textContent = (D.nama || D.emel) + ' · Admin';
+  $('kadTiadaSenarai').classList.toggle('tersembunyi', !!D.tetapan.senaraiUrl);
+  lukisRingkasanBil();
+  lukisTetapan();
+  paparan('vAdmin');
+  tukarTab(tabSemasa);
+}
+
+function tukarTab(t) {
+  tabSemasa = t;
+  document.querySelectorAll('.tab-modul button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+  ['Naik', 'Laporan', 'Tetapan'].forEach(x => $('tab' + x).classList.toggle('tersembunyi', x !== t));
+  if (t === 'Laporan') muatLaporan();
+}
+
+function lukisRingkasanBil() {
+  $('bilLaporan').textContent = (D.ringkasan || []).reduce((a, r) => a + r.bil, 0);
+}
+
+/* ---------- Pemprosesan PDF di pelayar ---------- */
+const PDFJS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+const PDFLIB_URL = 'https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js';
+const janjiSkrip = {};
+function muatSkrip(url) {
+  return janjiSkrip[url] = janjiSkrip[url] || new Promise((ok, gagal) => {
+    const s = document.createElement('script'); s.src = url; s.onload = ok;
+    s.onerror = () => { delete janjiSkrip[url]; gagal(new Error('Pustaka PDF tidak dapat dimuatkan. Semak sambungan internet.')); };
+    document.head.appendChild(s);
+  });
+}
+async function sediaPustaka() {
+  await Promise.all([muatSkrip(PDFJS_URL), muatSkrip(PDFLIB_URL)]);
+  window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_URL.replace('pdf.min.js', 'pdf.worker.min.js');
+}
+
+const NOMBOR = { SATU: 1, DUA: 2, TIGA: 3, EMPAT: 4, LIMA: 5, ENAM: 6 };
+function kesanKelas(t) {
+  let m = /TINGKATAN\s*\/\s*TAHUN\s*:?\s*TINGKATAN\s+(SATU|DUA|TIGA|EMPAT|LIMA|ENAM|\d)\s*\(\s*([A-Z ]+?)\s*\)/.exec(t);
+  if (m) return `${NOMBOR[m[1]] || m[1]} ${m[2]}`;
+  m = /\bKELAS\s*:?\s*([1-6]\s*[A-Z]+)\b/.exec(t);
+  return m ? m[1].replace(/\s+/, ' ') : '';
+}
+function kesanTajuk(t, namaFail) {
+  const m = /PELAPORAN\s+(.+?)\s+(20\d\d)\b/.exec(t);
+  if (m) {
+    const s = m[1].replace('PENTAKSIRAN BILIK DARJAH', 'PBD').toLowerCase().replace(/\b\w/g, c => c.toUpperCase()).replace(/\bPbd\b/, 'PBD');
+    return `${s} ${m[2]}`;
+  }
+  return namaFail.replace(/\.pdf$/i, '').replace(/[_-]+/g, ' ').trim();
+}
+function kesanMurid(t) {
+  let kp = '', nama = '';
+  let m = /(?:ID PENGENALAN|NO\.?\s*(?:KP|K\/P|MYKID|PENGENALAN|SURAT BERANAK))\s*:?\s*(\d{6}-?\d{2}-?\d{4})/.exec(t);
+  if (!m) m = /\b(\d{6}-\d{2}-\d{4}|\d{12})\b/.exec(t);
+  if (m) kp = m[1].replace(/\D/g, '');
+  m = /NAMA(?:\s+MURID|\s+PELAJAR)?\s*:?\s*([A-Z@'`\/.\- ]+?)\s+(?:ID PENGENALAN|NO\.?\s*(?:KP|K\/P|MYKID)|TINGKATAN|KELAS|JANTINA|\d)/.exec(t);
+  if (m) nama = m[1].trim();
+  return { kp, nama };
+}
+
+async function analisisFail(fail) {
+  const buf = await fail.arrayBuffer();
+  const doc = await pdfjsLib.getDocument({ data: new Uint8Array(buf.slice(0)) }).promise;
+  const murid = []; let pertama = '', tanpa = 0;
+  for (let i = 1; i <= doc.numPages; i++) {
+    const hal = await doc.getPage(i);
+    const tc = await hal.getTextContent();
+    const t = tc.items.map(x => x.str).join(' ').replace(/\s+/g, ' ').toUpperCase();
+    if (i === 1) pertama = t;
+    const x = kesanMurid(t);
+    const akhir = murid[murid.length - 1];
+    if (x.kp || x.nama) {
+      if (akhir && ((x.kp && akhir.kp === x.kp) || (!x.kp && normNama(akhir.nama) === normNama(x.nama)))) akhir.halaman.push(i - 1);
+      else murid.push({ kp: x.kp, nama: x.nama, halaman: [i - 1] });
+    } else if (akhir) akhir.halaman.push(i - 1);     // halaman sambungan
+    else tanpa++;
+  }
+  return { fail, buf, bilHalaman: doc.numPages, tanpa, murid,
+           tajuk: kesanTajuk(pertama, fail.name), kelas: kesanKelas(pertama) };
+}
+
+/* ---------- Senarai kumpulan (satu fail = satu kumpulan) ---------- */
+let kumpulan = [];
+async function terimaFail(senarai) {
+  const pdf = [...senarai].filter(f => /pdf$/i.test(f.type) || /\.pdf$/i.test(f.name));
+  if (!pdf.length) return mesej('Sila pilih fail PDF.', 'ralat');
+  const tempat = document.createElement('div');
+  tempat.className = 'kumpulan';
+  tempat.innerHTML = `<div class="muat" style="padding:14px 0"><div class="putar"></div>Membaca ${pdf.length} fail PDF&#x2026;</div>`;
+  $('senaraiKumpulan').appendChild(tempat);
+  try {
+    await sediaPustaka();
+    for (const f of pdf) {
+      const k = await analisisFail(f);
+      if (!k.murid.length) { mesej(`Tiada nama / No. KP murid dikesan dalam ${f.name}. Pastikan PDF mengandungi teks (bukan imej scan).`, 'ralat'); continue; }
+      const p = await run('padankan', k.murid.map(m => ({ kp: m.kp, nama: m.nama })));
+      k.murid.forEach((m, i) => Object.assign(m, p[i]));
+      if (!k.kelas) {               // ambil kelas paling kerap dari senarai
+        const kira = {}; k.murid.forEach(m => { if (m.kelasSenarai) kira[m.kelasSenarai] = (kira[m.kelasSenarai] || 0) + 1; });
+        k.kelas = Object.keys(kira).sort((a, b) => kira[b] - kira[a])[0] || '';
+      }
+      k.sedia = await run('semakSedia', k.tajuk, k.kelas.toUpperCase());
+      k.id = 'k' + Date.now() + Math.random().toString(36).slice(2, 6);
+      kumpulan.push(k);
+    }
+  } catch (e) { mesej(e.message, 'ralat'); }
+  tempat.remove();
+  lukisKumpulan();
+}
+
+function lukisKumpulan() {
+  $('senaraiKumpulan').innerHTML = kumpulan.map(k => {
+    const ada = k.murid.filter(m => m.jumpa).length, tiada = k.murid.length - ada;
+    return `<div class="kumpulan" id="${k.id}">
+      <div class="kepala-kad" style="margin-bottom:4px">
+        <div class="fail-nama">${ik('pdf')}<span>${esc(k.fail.name)} · ${k.bilHalaman} halaman</span></div>
+        <button class="ikon-btn" title="Buang" onclick="buangKumpulan('${k.id}')">${ik('tutup')}</button>
+      </div>
+      <div class="grid2">
+        <div><label>Tajuk laporan</label><input value="${esc(k.tajuk)}" oninput="ubahK('${k.id}','tajuk',this.value)"></div>
+        <div><label>Kelas</label><input value="${esc(k.kelas)}" placeholder="cth: 1 BERLIAN" oninput="ubahK('${k.id}','kelas',this.value)"></div>
+      </div>
+      <div class="stat3" style="margin-top:12px">
+        <div><b>${k.murid.length}</b><span>Murid dikesan</span></div>
+        <div class="hijau"><b>${ada}</b><span>Ada ID DELIMa</span></div>
+        <div class="${tiada ? 'merah' : ''}"><b>${tiada}</b><span>Tiada DELIMa</span></div>
+      </div>
+      ${k.sedia ? `<div class="banner amaran" style="margin:0 0 10px"><span data-ik="amaran"></span><div>${k.sedia} laporan "<b>${esc(k.tajuk)}</b>" untuk kelas ini sudah ada. Fail murid yang sama akan <b>diganti</b>.</div></div>` : ''}
+      ${tiada ? `<div class="banner bahaya" style="margin:0 0 10px"><span data-ik="amaran"></span><div>${tiada} murid tiada dalam Sheet senarai DELIMa. Laporan mereka tetap disimpan, tetapi ibu bapa belum boleh membukanya sehingga senarai dikemas kini.</div></div>` : ''}
+      ${k.tanpa ? `<div class="nota" style="margin:-4px 0 8px">${k.tanpa} halaman awal tanpa maklumat murid diabaikan.</div>` : ''}
+      <details class="lipat" ${tiada ? 'open' : ''}><summary><div><b>Senarai murid</b><span class="k">Semak padanan sebelum muat naik</span></div><span class="anak">${ik('anak')}</span></summary>
+        <div class="badan senarai-dalam">${k.murid.map((m, i) => `
+          <div class="rekod ${m.status === 'siap' ? 'selesai' : m.status === 'gagal' ? 'belum' : m.jumpa ? '' : 'belum'}" id="${k.id}_${i}">
+            <div class="isi"><div class="tajuk-r">${i + 1}. ${esc(m.nama || m.namaSenarai || '(tiada nama)')}</div>
+              <div class="meta">${m.kp ? `<span>${ik('ic')}${esc(kpSeparuh(m.kp))}</span>` : ''}<span>${ik('pdf')}${m.halaman.length > 1 ? 'Hal. ' + (m.halaman[0] + 1) + '–' + (m.halaman[m.halaman.length - 1] + 1) : 'Hal. ' + (m.halaman[0] + 1)}</span>
+              ${m.delima ? `<span>${ik('emel')}${esc(m.delima)}</span>` : ''}</div></div>
+            <div class="kanan">${statusMurid(m)}</div>
+          </div>`).join('')}</div>
+      </details>
+    </div>`;
+  }).join('');
+  pasangIkon($('senaraiKumpulan'));
+  const jum = kumpulan.reduce((a, k) => a + k.murid.filter(m => m.status !== 'siap').length, 0);
+  $('blokNaik').classList.toggle('tersembunyi', !kumpulan.length);
+  $('teksNaik').textContent = `Muat naik ${jum} laporan`;
+  $('btnNaik').disabled = !jum;
+}
+
+function statusMurid(m) {
+  if (m.status === 'siap') return '<span class="status selesai">Dimuat naik</span>';
+  if (m.status === 'naik') return '<span class="putar kecil"></span>';
+  if (m.status === 'gagal') return `<span class="status belum" title="${esc(m.ralat)}">Gagal</span>`;
+  return m.jumpa ? '<span class="status selesai">DELIMa ✓</span>' : '<span class="status belum">Tiada dalam senarai</span>';
+}
+
+function ubahK(id, medan, v) { const k = kumpulan.find(x => x.id === id); if (k) k[medan] = v; }
+function buangKumpulan(id) { kumpulan = kumpulan.filter(k => k.id !== id); lukisKumpulan(); }
+function kosongkanKumpulan() { kumpulan = []; lukisKumpulan(); }
+
+/* ---------- Pecah & muat naik ---------- */
+function keBase64(u8) {
+  let s = ''; const C = 0x8000;
+  for (let i = 0; i < u8.length; i += C) s += String.fromCharCode.apply(null, u8.subarray(i, i + C));
+  return btoa(s);
+}
+
+async function mulaMuatNaik() {
+  for (const k of kumpulan) {
+    if (!String(k.tajuk).trim() || !String(k.kelas).trim()) return mesej('Sila isi tajuk laporan dan kelas untuk setiap fail.', 'ralat');
+  }
+  const kerja = [];
+  kumpulan.forEach(k => k.murid.forEach((m, i) => { if (m.status !== 'siap') kerja.push({ k, m, i }); }));
+  const tiada = kerja.filter(x => !x.m.jumpa).length;
+  const ok = await sahkan({ jenis: 'ok', ok: 'Muat naik', tajuk: `Muat naik ${kerja.length} laporan?`,
+    teks: `Fail akan disimpan private dalam Google Drive.${tiada ? `\n\n${tiada} murid tiada ID DELIMa — ibu bapa mereka belum boleh muat turun.` : ''}` });
+  if (!ok) return;
+
+  $('btnNaik').classList.add('tersembunyi'); $('btnBatalSemua').classList.add('tersembunyi'); $('kemajuan').classList.remove('tersembunyi');
+  $('trekIsi').classList.remove('penuh');
+  let siap = 0, gagal = 0;
+  const kemas = () => {
+    const p = Math.round((siap + gagal) / kerja.length * 100);
+    $('trekIsi').style.width = p + '%'; $('kemajuanPeratus').textContent = p + '%';
+    $('kemajuanTeks').textContent = `${siap + gagal} / ${kerja.length} laporan${gagal ? ` · ${gagal} gagal` : ''}`;
+  };
+  kemas();
+
+  const sumber = new Map();
+  async function dokSumber(k) {
+    if (!sumber.has(k.id)) sumber.set(k.id, PDFLib.PDFDocument.load(k.buf, { ignoreEncryption: true }));
+    return sumber.get(k.id);
+  }
+  async function satu({ k, m, i }) {
+    m.status = 'naik'; kemasBaris(k, m, i);
+    try {
+      const src = await dokSumber(k);
+      const d = await PDFLib.PDFDocument.create();
+      (await d.copyPages(src, m.halaman)).forEach(p => d.addPage(p));
+      const bait = await d.save();
+      await run('simpanLaporan', { tajuk: k.tajuk.trim(), kelas: k.kelas.trim(), kp: m.kp, nama: m.nama || m.namaSenarai, delima: m.delima, data: keBase64(bait) });
+      m.status = 'siap'; siap++;
+    } catch (e) { m.status = 'gagal'; m.ralat = e.message; gagal++; }
+    kemasBaris(k, m, i); kemas();
+  }
+  const baki = kerja.slice();
+  await Promise.all([0, 1, 2].map(async () => { while (baki.length) await satu(baki.shift()); }));
+
+  $('trekIsi').classList.toggle('penuh', !gagal);
+  $('btnNaik').classList.remove('tersembunyi'); $('btnBatalSemua').classList.remove('tersembunyi');
+  try { D = await run('muatAwal'); lukisRingkasanBil(); } catch (e) {}
+  if (gagal) { mesej(`${siap} laporan berjaya, ${gagal} gagal. Tekan "Muat naik" sekali lagi untuk cuba semula yang gagal.`, 'ralat'); lukisKumpulan(); $('kemajuan').classList.remove('tersembunyi'); }
+  else { mesej(`Selesai! ${siap} laporan telah dimuat naik.`); kumpulan = []; lukisKumpulan(); $('kemajuan').classList.add('tersembunyi'); }
+}
+
+function kemasBaris(k, m, i) {
+  const el = $(`${k.id}_${i}`); if (!el) return;
+  el.className = 'rekod ' + (m.status === 'siap' ? 'selesai' : m.status === 'gagal' ? 'belum' : '');
+  el.querySelector('.kanan').innerHTML = statusMurid(m);
+}
+
+/* Seret & lepas */
+(() => {
+  const z = $('zon');
+  ['dragenter', 'dragover'].forEach(e => z.addEventListener(e, v => { v.preventDefault(); z.classList.add('seret'); }));
+  ['dragleave', 'drop'].forEach(e => z.addEventListener(e, v => { v.preventDefault(); z.classList.remove('seret'); }));
+  z.addEventListener('drop', v => terimaFail(v.dataTransfer.files));
+})();
+
+/* ---------- Tab Laporan ---------- */
+let L = null;
+async function muatLaporan() {
+  try { L = await run('senaraiLaporan'); lukisLaporan(); }
+  catch (e) { $('senaraiLaporan').innerHTML = `<div class="kosong">${esc(e.message)}</div>`; }
+}
+
+function lukisLaporan() {
+  if (!L) return;
+  const q = $('cariLaporan').value.trim().toUpperCase();
+  const kelas = new Set(L.map(r => r.kelas)), tanpa = L.filter(r => !r.delima).length;
+  $('statLaporan').innerHTML = `<div><b>${L.length}</b><span>Laporan</span></div><div><b>${kelas.size}</b><span>Kelas</span></div>
+    <div class="${tanpa ? 'merah' : 'hijau'}"><b>${tanpa}</b><span>Tiada DELIMa</span></div>`;
+  const tapis = q ? L.filter(r => r.nama.indexOf(q) >= 0 || r.kp.indexOf(q.replace(/\D/g, '') || '~') >= 0) : L;
+  const kump = {};
+  tapis.forEach(r => { const k = r.tajuk + '\u0001' + r.kelas; (kump[k] = kump[k] || []).push(r); });
+  const kunci = Object.keys(kump).sort();
+  $('ketLaporan').textContent = kunci.length ? kunci.length + ' kumpulan' : '';
+  $('senaraiLaporan').innerHTML = kunci.length ? kunci.map(k => {
+    const s = kump[k].sort((a, b) => a.nama.localeCompare(b.nama)), [tajuk, kls] = k.split('\u0001');
+    const t = s.filter(r => !r.delima).length;
+    return `<details class="lipat" ${q ? 'open' : ''}><summary>
+        <div class="ikon-mod" style="width:38px;height:38px;border-radius:11px;background:#ddf2ef;color:var(--navy);display:grid;place-items:center">${ik('kelas')}</div>
+        <div style="min-width:0"><b>${esc(kls)}</b><span class="k">${esc(tajuk)} · ${s.length} murid${t ? ` · <span style="color:var(--merah)">${t} tiada DELIMa</span>` : ''}</span></div>
+        <span class="anak">${ik('anak')}</span></summary>
+      <div class="badan">
+        ${s.map(r => `<div class="rekod ${r.delima ? 'selesai' : 'belum'}">
+          <div class="isi"><div class="tajuk-r">${esc(r.nama)}</div>
+            <div class="meta">${r.kp ? `<span>${ik('ic')}${esc(kpSeparuh(r.kp))}</span>` : ''}<span>${ik('kalendar')}${tarikhPapar(r.masa)}</span>
+            ${r.delima ? `<span>${ik('emel')}${esc(r.delima)}</span>` : '<span style="color:var(--merah)">Tiada ID DELIMa</span>'}</div></div>
+          <div class="kanan"><button class="pautan" onclick="muatTurun(this,'${esc(r.id)}')">${ik('muatturun')}PDF</button>
+            <button class="padam" onclick="padam(['${esc(r.id)}'],'laporan ${esc(r.nama.replace(/['"\\]/g, ''))}')">${ik('padam')}Padam</button></div>
+        </div>`).join('')}
+        <button class="btn bahaya" onclick="padam(${esc(JSON.stringify(s.map(r => r.id)))},'${s.length} laporan ${esc(kls.replace(/['"\\]/g, ''))}')">${ik('padam')}Padam semua laporan kelas ini</button>
+      </div></details>`;
+  }).join('') : `<div class="kosong">${q ? 'Tiada padanan.' : 'Belum ada laporan. Muat naik di tab Muat naik.'}</div>`;
+}
+
+async function padam(ids, ket) {
+  const ok = await sahkan({ tajuk: 'Padam ' + ket + '?', teks: 'Fail akan dipindahkan ke Trash Google Drive dan ibu bapa tidak lagi boleh memuat turunnya.' });
+  if (!ok) return;
+  try {
+    const r = await run('padamLaporan', ids);
+    D.ringkasan = r.ringkasan; lukisRingkasanBil();
+    mesej(r.bil + ' laporan dipadam.'); muatLaporan();
+  } catch (e) { mesej(e.message, 'ralat'); }
+}
+
+/* ---------- Tab Tetapan ---------- */
+let senaraiAdmin = [];
+function lukisTetapan() {
+  const t = D.tetapan;
+  $('pautanApp').textContent = D.url || '(pautan web app akan muncul selepas Deploy)';
+  $('urlSenarai').value = t.senaraiUrl || '';
+  $('suisTutup').checked = !!t.tutup;
+  $('pemilik').textContent = 'Pemilik: ' + t.pemilik;
+  $('pautanData').href = t.dataUrl; $('pautanFolder').href = t.folderUrl;
+  senaraiAdmin = (t.admin || []).map(a => ({ emel: a.emel, nama: a.nama }));
+  lukisAdmin();
+}
+function lukisAdmin() {
+  $('senaraiAdmin').innerHTML = senaraiAdmin.length ? senaraiAdmin.map((a, i) => `
+    <div class="baris-admin">
+      <input value="${esc(a.emel)}" placeholder="g-xxxx@moe-dl.edu.my" oninput="senaraiAdmin[${i}].emel=this.value">
+      <input value="${esc(a.nama)}" placeholder="Nama" oninput="senaraiAdmin[${i}].nama=this.value">
+      <button class="ikon-btn" onclick="senaraiAdmin.splice(${i},1);lukisAdmin()">${ik('padam')}</button>
+    </div>`).join('') : '<div class="kosong" style="padding:8px">Tiada admin tambahan.</div>';
+}
+function tambahAdmin() { senaraiAdmin.push({ emel: '', nama: '' }); lukisAdmin(); }
+
+async function simpanAdmin(btn) {
+  await denganButang(btn, async () => {
+    D.tetapan = await run('simpanTetapan', { admin: senaraiAdmin });
+    lukisTetapan(); mesej('Senarai admin disimpan.');
+  });
+}
+async function simpanTutup(v) {
+  try { D.tetapan = await run('simpanTetapan', { tutup: v }); mesej(v ? 'Semakan ibu bapa DITUTUP.' : 'Semakan ibu bapa DIBUKA.'); }
+  catch (e) { $('suisTutup').checked = !v; mesej(e.message, 'ralat'); }
+}
+async function simpanSenarai(btn) {
+  const url = $('urlSenarai').value.trim();
+  if (!url) return mesej('Sila tampal URL Google Sheet senarai murid.', 'ralat');
+  await denganButang(btn, async () => {
+    D.tetapan = await run('simpanTetapan', { senaraiUrl: url });
+    const u = await run('ujiSenarai');
+    $('kadTiadaSenarai').classList.toggle('tersembunyi', !!u.bil);
+    $('hasilUji').innerHTML = u.bil
+      ? `<div class="banner ok"><span data-ik="semak"></span><div><b>${u.bil} murid</b> dibaca daripada tab: ${esc(u.tab.join(', '))}.<br>
+          ${u.adaKp ? 'Lajur No. KP dikesan ✓' : '<b>Tiada lajur No. KP</b> — padanan dibuat ikut nama.'}<br>
+          Contoh: ${u.contoh.map(c => esc(c.nama) + ' → ' + esc(c.delima)).join('; ')}</div></div>`
+      : `<div class="banner amaran"><span data-ik="amaran"></span><div>Tiada murid dibaca. Pastikan baris pertama mempunyai lajur <b>Nama</b> dan <b>ID DELIMa</b>.</div></div>`;
+    pasangIkon($('hasilUji'));
+  }, 'Menguji…');
+}
+function salinPautan() {
+  const t = $('pautanApp').textContent;
+  (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => mesej('Pautan disalin.'))
+    .catch(() => { const r = document.createRange(); r.selectNodeContents($('pautanApp')); getSelection().removeAllRanges(); getSelection().addRange(r); mesej('Tekan Ctrl+C / Salin untuk menyalin.'); });
+}
+function kongsiWa() {
+  const teks = `Assalamualaikum dan salam sejahtera ibu bapa/penjaga,\n\nLaporan murid kini boleh dimuat turun melalui pautan berikut:\n${D.url}\n\nCara: buka pautan, log masuk menggunakan *akaun DELIMa anak* (…@moe-dl.edu.my), kemudian tekan *Muat turun*.\n\nPanduan: https://g-03355699-tech.github.io/pbdku/#ibubapa\n\nTerima kasih.\n- ${D.sekolah || ''}`;
+  window.open('https://wa.me/?text=' + encodeURIComponent(teks), '_blank');
+}
+
+pasangIkon();
+mula();

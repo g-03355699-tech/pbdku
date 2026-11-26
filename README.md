@@ -13,7 +13,8 @@ Web app percuma (Google Sheets + Apps Script) untuk sekolah mengedarkan **lapora
 | Fail | Keterangan |
 |---|---|
 | `Code.gs` | Pelayan Apps Script (pengesahan DELIMa, simpan ke Drive, padanan senarai, muat turun) |
-| `Index.html` | Antara muka (ibu bapa & admin) — pecah PDF dalam pelayar menggunakan pdf.js & pdf-lib |
+| `Index.html` | Antara muka (HTML & CSS) ibu bapa & admin |
+| `App.html` | Kod JavaScript app — dimuatkan melalui `kodApp()` (elak pepijat HtmlService). Pecah PDF dalam pelayar menggunakan pdf.js & pdf-lib |
 | `appsscript.json` | Manifest: `executeAs: USER_DEPLOYING`, `access: DOMAIN` |
 | `docs/` | Halaman panduan (GitHub Pages). Tukar `docs/config.js` kepada URL `…/exec` anda |
 
@@ -22,7 +23,7 @@ Web app percuma (Google Sheets + Apps Script) untuk sekolah mengedarkan **lapora
 > ⚠️ Mesti menggunakan **akaun DELIMa guru** (`g-…@moe-dl.edu.my`). Web app yang dijalankan sebagai pemilik hanya dapat membaca emel pengunjung dalam domain yang sama.
 
 1. Cipta Google Sheet **PBDku** → *Extensions → Apps Script*.
-2. Tampal `Code.gs` (tukar `NAMA_SEKOLAH`), tambah HTML `Index` → tampal `Index.html`, ganti `appsscript.json`.
+2. Tampal `Code.gs` (tukar `NAMA_SEKOLAH`), tambah HTML `Index` → tampal `Index.html`, tambah HTML `App` → tampal `App.html`, ganti `appsscript.json`.
 3. Jalankan fungsi `pasang` → beri kebenaran.
 4. *Deploy → New deployment → Web app*: **Execute as: Me**, **Who has access: Anyone within Kementerian Pendidikan Malaysia**.
 5. Buka URL `…/exec` → tab **Tetapan** → tampal URL Sheet senarai murid → **Simpan & uji**.
