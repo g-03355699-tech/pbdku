@@ -473,7 +473,8 @@ async function simpanSenarai(btn) {
     $('kadTiadaSenarai').classList.toggle('tersembunyi', !!u.bil);
     $('hasilUji').innerHTML = u.bil
       ? `<div class="banner ok"><span data-ik="semak"></span><div><b>${u.bil} murid</b> dibaca daripada tab: ${esc(u.tab.join(', '))}.<br>
-          ${u.adaKp ? 'Lajur No. KP dikesan ✓' : '<b>Tiada lajur No. KP</b> — padanan dibuat ikut nama.'}<br>
+          ${u.tabKp && u.tabKp.length ? `No. KP diambil dari tab <b>${esc(u.tabKp.join(', '))}</b> dan digabung ikut nama: <b>${u.kpDigabung}</b> murid.<br>` : ''}
+          ${!u.adaKp ? '<b>Tiada No. KP</b> — padanan dibuat ikut nama.' : u.tanpaKp ? `<span style="color:#7a5500"><b>${u.tanpaKp} murid tiada No. KP</b> (nama tidak sepadan antara tab) — padanan mereka dibuat ikut nama.</span>` : 'Semua murid ada No. KP ✓'}<br>
           Contoh: ${u.contoh.map(c => esc(c.nama) + ' → ' + esc(c.delima)).join('; ')}</div></div>`
       : `<div class="banner amaran"><span data-ik="amaran"></span><div>Tiada murid dibaca. Pastikan baris pertama mempunyai lajur <b>Nama</b> dan <b>ID DELIMa</b>.</div></div>`;
     pasangIkon($('hasilUji'));

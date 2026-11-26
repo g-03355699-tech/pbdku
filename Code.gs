@@ -16,7 +16,7 @@
  *    Who has access:  Anyone within Kementerian Pendidikan Malaysia (moe-dl.edu.my)
  */
 
-const VERSI = '1.0.1';
+const VERSI = '1.0.2';
 const NAMA_SEKOLAH = 'SM Sains Kuala Selangor';   // tukar mengikut sekolah anda
 const NAMA_FOLDER = 'PBDku - Laporan Murid';
 const TAB = { laporan: 'Laporan', admin: 'Admin', log: 'Log' };
@@ -232,6 +232,9 @@ function ujiSenarai() {
     adaKp: s.senarai.some(m => m.kp),
     adaKelas: s.senarai.some(m => m.kelas),
     tab: s.tab,
+    tabKp: s.tabKp || [],
+    kpDigabung: s.kpDigabung || 0,
+    tanpaKp: s.tanpaKp || 0,
     contoh: s.senarai.slice(0, 3).map(m => ({ nama: m.nama, delima: m.delima, kelas: m.kelas }))
   };
 }
@@ -239,9 +242,11 @@ function ujiSenarai() {
 /* ============================ Senarai murid (Sheet berasingan) ============================ */
 
 /**
- * Baca semua tab dalam Sheet senarai. Lajur dikesan ikut tajuk baris pertama:
- *   Nama | No. KP (pilihan) | Kelas (pilihan) | ID DELIMa / Emel
- * Satu tab satu kelas pun boleh — nama tab digunakan sebagai kelas jika tiada lajur Kelas.
+ * Baca semua tab dalam Sheet senarai. Lajur dikesan ikut tajuk (dalam 10 baris pertama):
+ *   Nama | ID DELIMa / Emel | No. KP (pilihan) | Kelas (pilihan)
+ * - Satu tab satu kelas pun boleh: nama tab digunakan sebagai kelas jika tiada lajur Kelas.
+ * - ID DELIMa dan No. KP boleh berada dalam TAB BERLAINAN: tab yang ada Nama + No. KP
+ *   (tanpa ID DELIMa) digabungkan dengan tab ID DELIMa ikut nama murid.
  */
 function senaraiMurid_() {
   const cache = CacheService.getScriptCache();
@@ -249,45 +254,73 @@ function senaraiMurid_() {
   if (c) return JSON.parse(c);
 
   const id = PropertiesService.getScriptProperties().getProperty('SENARAI_ID');
-  if (!id) return { senarai: [], tab: [] };
+  if (!id) return { senarai: [], tab: [], tabKp: [], kpDigabung: 0, tanpaKp: 0 };
   const ss = SpreadsheetApp.openById(id);
-  const senarai = [], tabDibaca = [];
+  const senarai = [], tabDibaca = [], tabKp = [];
+  const petaKp = {};          // normNama -> { kp, kelas } daripada tab No. KP
+
   ss.getSheets().forEach(sh => {
     const v = sh.getDataRange().getValues();
     if (v.length < 2) return;
-    // cari baris tajuk dalam 5 baris pertama
     let h = -1, col = null;
-    for (let r = 0; r < Math.min(5, v.length) && h < 0; r++) {
+    for (let r = 0; r < Math.min(10, v.length) && h < 0; r++) {
       const k = cariLajur_(v[r]);
-      if (k.nama >= 0 && k.delima >= 0) { h = r; col = k; }
+      if (k.nama >= 0 && (k.delima >= 0 || k.kp >= 0)) { h = r; col = k; }
     }
     if (h < 0) return;
-    tabDibaca.push(sh.getName());
-    for (let r = h + 1; r < v.length; r++) {
-      const nama = String(v[r][col.nama] || '').trim();
-      const delima = String(v[r][col.delima] || '').trim().toLowerCase();
-      if (!nama || !delima) continue;
-      senarai.push({
-        nama: nama.toUpperCase(),
-        delima: /@/.test(delima) ? delima : delima + '@moe-dl.edu.my',
-        kp: col.kp >= 0 ? String(v[r][col.kp] || '').replace(/\D/g, '') : '',
-        kelas: col.kelas >= 0 ? String(v[r][col.kelas] || '').trim().toUpperCase() : sh.getName().toUpperCase()
-      });
+    const namaTab = sh.getName().trim().toUpperCase();
+    const kelasDari = r => col.kelas >= 0 ? String(v[r][col.kelas] || '').trim().toUpperCase() : '';
+
+    if (col.delima >= 0) {                      // tab ID DELIMa
+      tabDibaca.push(sh.getName());
+      for (let r = h + 1; r < v.length; r++) {
+        const nama = String(v[r][col.nama] || '').trim();
+        const delima = String(v[r][col.delima] || '').trim().toLowerCase();
+        if (!nama || !delima) continue;
+        senarai.push({
+          nama: nama.toUpperCase(),
+          delima: /@/.test(delima) ? delima : delima + '@moe-dl.edu.my',
+          kp: col.kp >= 0 ? bersihKp_(v[r][col.kp]) : '',
+          kelas: kelasDari(r),
+          tab: namaTab
+        });
+      }
+    } else {                                    // tab No. KP sahaja
+      tabKp.push(sh.getName());
+      for (let r = h + 1; r < v.length; r++) {
+        const n = normNama_(v[r][col.nama]);
+        const kp = bersihKp_(v[r][col.kp]);
+        if (n && kp) petaKp[n] = { kp, kelas: kelasDari(r) || namaTab };
+      }
     }
   });
-  const hasil = { senarai, tab: tabDibaca };
+
+  let kpDigabung = 0;
+  senarai.forEach(m => {
+    const x = petaKp[normNama_(m.nama)];
+    if (!m.kp && x) { m.kp = x.kp; kpDigabung++; }
+    if (!m.kelas) m.kelas = (x && x.kelas) || m.tab;
+    delete m.tab;
+  });
+  const hasil = { senarai, tab: tabDibaca, tabKp, kpDigabung, tanpaKp: senarai.filter(m => !m.kp).length };
   try { cache.put('senarai', JSON.stringify(hasil), 600); } catch (e) {}
   return hasil;
 }
 
+function bersihKp_(v) {
+  const s = typeof v === 'number' ? v.toFixed(0) : String(v || '');
+  const d = s.replace(/\D/g, '');
+  return d.length === 12 ? d : '';
+}
+
 function cariLajur_(baris) {
   const k = { nama: -1, kp: -1, kelas: -1, delima: -1 };
-  const kecil = baris.map(t => String(t).toLowerCase());
+  const kecil = baris.map(t => String(t).toLowerCase().trim());
   k.delima = kecil.findIndex(s => /delima/.test(s));
-  if (k.delima < 0) k.delima = kecil.findIndex(s => /e-?mel|email|id\s*google/.test(s));
+  if (k.delima < 0) k.delima = kecil.findIndex(s => /e-?mel|email|id\s*google|id\s*pengguna/.test(s));
   kecil.forEach((s, i) => {
-    if (i === k.delima) return;
-    if (k.kp < 0 && /(no\.?\s*)?(kp|ic|mykid|pengenalan)/.test(s)) k.kp = i;
+    if (i === k.delima || !s) return;
+    if (k.kp < 0 && (/pengenalan|mykid|mykad|\bk\/?p\b|\bic\b|no\.?\s*kp/.test(s))) k.kp = i;
     else if (k.kelas < 0 && /kelas|tingkatan/.test(s)) k.kelas = i;
     else if (k.nama < 0 && /nama/.test(s)) k.nama = i;
   });
