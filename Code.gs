@@ -16,7 +16,7 @@
  *    Who has access:  Anyone within Kementerian Pendidikan Malaysia (moe-dl.edu.my)
  */
 
-const VERSI = '1.0.2';
+const VERSI = '1.0.3';
 const NAMA_SEKOLAH = 'SM Sains Kuala Selangor';   // tukar mengikut sekolah anda
 const NAMA_FOLDER = 'PBDku - Laporan Murid';
 const TAB = { laporan: 'Laporan', admin: 'Admin', log: 'Log' };
@@ -207,9 +207,12 @@ function simpanTetapan(t) {
     const id = idDariUrl_(url);
     try { SpreadsheetApp.openById(id).getName(); }
     catch (e) { throw new Error('Sheet senarai murid tidak dapat dibuka. Pastikan URL betul dan anda (pemilik skrip) ada akses.'); }
+    if (id !== p.getProperty('SENARAI_ID')) { p.setProperty('TAB_DELIMA', ''); p.setProperty('TAB_KP', ''); }
     p.setProperty('SENARAI_ID', id);
   }
   if (t.tutup !== undefined) p.setProperty('TUTUP', t.tutup ? '1' : '');
+  if (t.tabDelima !== undefined) p.setProperty('TAB_DELIMA', t.tabDelima || '');
+  if (t.tabKp !== undefined) p.setProperty('TAB_KP', t.tabKp || '');
   if (Array.isArray(t.admin)) {
     const sh = tab_(TAB.admin);
     if (sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, 3).clearContent();
@@ -227,7 +230,20 @@ function ujiSenarai() {
   wajibAdmin_();
   CacheService.getScriptCache().remove('senarai');
   const s = senaraiMurid_();
+  const id = PropertiesService.getScriptProperties().getProperty('SENARAI_ID');
+  const semuaTab = [];
+  if (id) SpreadsheetApp.openById(id).getSheets().forEach(sh => {
+    const v = sh.getRange(1, 1, Math.min(10, Math.max(1, sh.getLastRow())), Math.max(1, sh.getLastColumn())).getValues();
+    let jenis = '';
+    for (const baris of v) {
+      const k = cariLajur_(baris);
+      if (k.nama >= 0 && k.delima >= 0) { jenis = 'delima'; break; }
+      if (k.nama >= 0 && k.kp >= 0) { jenis = 'kp'; break; }
+    }
+    semuaTab.push({ nama: sh.getName(), jenis, baris: sh.getLastRow() });
+  });
   return {
+    semuaTab,
     bil: s.senarai.length,
     adaKp: s.senarai.some(m => m.kp),
     adaKelas: s.senarai.some(m => m.kelas),
@@ -255,11 +271,17 @@ function senaraiMurid_() {
 
   const id = PropertiesService.getScriptProperties().getProperty('SENARAI_ID');
   if (!id) return { senarai: [], tab: [], tabKp: [], kpDigabung: 0, tanpaKp: 0 };
+  const p = PropertiesService.getScriptProperties();
+  const tabD = p.getProperty('TAB_DELIMA') || '', tabK = p.getProperty('TAB_KP') || '';
   const ss = SpreadsheetApp.openById(id);
   const senarai = [], tabDibaca = [], tabKp = [];
   const petaKp = {};          // normNama -> { kp, kelas } daripada tab No. KP
 
-  ss.getSheets().forEach(sh => {
+  // Jika admin memilih tab, baca tab itu sahaja (Sheet induk sekolah biasanya ada banyak tab lain).
+  const helaian = tabD
+    ? [ss.getSheetByName(tabD), tabK && tabK !== tabD ? ss.getSheetByName(tabK) : null].filter(Boolean)
+    : ss.getSheets();
+  helaian.forEach(sh => {
     const v = sh.getDataRange().getValues();
     if (v.length < 2) return;
     let h = -1, col = null;
@@ -268,13 +290,16 @@ function senaraiMurid_() {
       if (k.nama >= 0 && (k.delima >= 0 || k.kp >= 0)) { h = r; col = k; }
     }
     if (h < 0) return;
+    if (tabD && sh.getName() === tabK && tabK !== tabD) col.delima = -1;   // tab No. KP: abaikan lajur emel
     const namaTab = sh.getName().trim().toUpperCase();
+    const namaDari = r => [v[r][col.nama], col.namaAkhir >= 0 ? v[r][col.namaAkhir] : '']
+      .map(x => String(x || '').trim()).filter(Boolean).join(' ');
     const kelasDari = r => col.kelas >= 0 ? String(v[r][col.kelas] || '').trim().toUpperCase() : '';
 
     if (col.delima >= 0) {                      // tab ID DELIMa
       tabDibaca.push(sh.getName());
       for (let r = h + 1; r < v.length; r++) {
-        const nama = String(v[r][col.nama] || '').trim();
+        const nama = namaDari(r);
         const delima = String(v[r][col.delima] || '').trim().toLowerCase();
         if (!nama || !delima) continue;
         senarai.push({
@@ -288,7 +313,7 @@ function senaraiMurid_() {
     } else {                                    // tab No. KP sahaja
       tabKp.push(sh.getName());
       for (let r = h + 1; r < v.length; r++) {
-        const n = normNama_(v[r][col.nama]);
+        const n = normNama_(namaDari(r));
         const kp = bersihKp_(v[r][col.kp]);
         if (n && kp) petaKp[n] = { kp, kelas: kelasDari(r) || namaTab };
       }
@@ -314,15 +339,16 @@ function bersihKp_(v) {
 }
 
 function cariLajur_(baris) {
-  const k = { nama: -1, kp: -1, kelas: -1, delima: -1 };
+  const k = { nama: -1, namaAkhir: -1, kp: -1, kelas: -1, delima: -1 };
   const kecil = baris.map(t => String(t).toLowerCase().trim());
   k.delima = kecil.findIndex(s => /delima/.test(s));
   if (k.delima < 0) k.delima = kecil.findIndex(s => /e-?mel|email|id\s*google|id\s*pengguna/.test(s));
   kecil.forEach((s, i) => {
     if (i === k.delima || !s) return;
     if (k.kp < 0 && (/pengenalan|mykid|mykad|\bk\/?p\b|\bic\b|no\.?\s*kp/.test(s))) k.kp = i;
-    else if (k.kelas < 0 && /kelas|tingkatan/.test(s)) k.kelas = i;
-    else if (k.nama < 0 && /nama/.test(s)) k.nama = i;
+    else if (k.kelas < 0 && /^kelas|kelas$|^tingkatan$/.test(s)) k.kelas = i;
+    else if (k.nama < 0 && /nama|first name|full name|given name/.test(s)) k.nama = i;
+    else if (k.namaAkhir < 0 && /last name|family name|surname/.test(s)) k.namaAkhir = i;
   });
   return k;
 }
@@ -386,6 +412,8 @@ function bacaTetapan_() {
     pemilik: Session.getEffectiveUser().getEmail(),
     admin,
     tutup: !!p.getProperty('TUTUP'),
+    tabDelima: p.getProperty('TAB_DELIMA') || '',
+    tabKp: p.getProperty('TAB_KP') || '',
     dataUrl: SpreadsheetApp.getActive().getUrl(),
     folderUrl: folderUtama_().getUrl()
   };

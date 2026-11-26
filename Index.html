@@ -343,6 +343,13 @@
           <div class="baris">
             <button class="btn" onclick="simpanSenarai(this)"><span data-ik="semak"></span>Simpan &amp; uji</button>
           </div>
+          <div id="pilihTab" class="tersembunyi">
+            <div class="baris" style="margin-top:12px">
+              <div><label class="tajuk" style="margin-top:0">Tab ID DELIMa</label><select id="tabDelima" onchange="simpanTab()"></select></div>
+              <div><label class="tajuk" style="margin-top:0">Tab No. KP <span class="kecil">(jika berlainan)</span></label><select id="tabKp" onchange="simpanTab()"></select></div>
+            </div>
+            <div class="nota">Sheet dengan banyak tab? Pilih tab yang betul supaya hanya data murid dibaca. ID DELIMa &amp; No. KP dalam tab berlainan digabung ikut nama murid.</div>
+          </div>
           <div id="hasilUji"></div>
         </section>
 

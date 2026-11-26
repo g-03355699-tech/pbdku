@@ -469,16 +469,36 @@ async function simpanSenarai(btn) {
   if (!url) return mesej('Sila tampal URL Google Sheet senarai murid.', 'ralat');
   await denganButang(btn, async () => {
     D.tetapan = await run('simpanTetapan', { senaraiUrl: url });
-    const u = await run('ujiSenarai');
-    $('kadTiadaSenarai').classList.toggle('tersembunyi', !!u.bil);
-    $('hasilUji').innerHTML = u.bil
-      ? `<div class="banner ok"><span data-ik="semak"></span><div><b>${u.bil} murid</b> dibaca daripada tab: ${esc(u.tab.join(', '))}.<br>
-          ${u.tabKp && u.tabKp.length ? `No. KP diambil dari tab <b>${esc(u.tabKp.join(', '))}</b> dan digabung ikut nama: <b>${u.kpDigabung}</b> murid.<br>` : ''}
-          ${!u.adaKp ? '<b>Tiada No. KP</b> — padanan dibuat ikut nama.' : u.tanpaKp ? `<span style="color:#7a5500"><b>${u.tanpaKp} murid tiada No. KP</b> (nama tidak sepadan antara tab) — padanan mereka dibuat ikut nama.</span>` : 'Semua murid ada No. KP ✓'}<br>
-          Contoh: ${u.contoh.map(c => esc(c.nama) + ' → ' + esc(c.delima)).join('; ')}</div></div>`
-      : `<div class="banner amaran"><span data-ik="amaran"></span><div>Tiada murid dibaca. Pastikan baris pertama mempunyai lajur <b>Nama</b> dan <b>ID DELIMa</b>.</div></div>`;
-    pasangIkon($('hasilUji'));
-  }, 'Menguji…');
+    lukisUji(await run('ujiSenarai'));
+  }, 'Menguji\u2026');
+}
+
+async function simpanTab() {
+  const tabDelima = $('tabDelima').value, tabKp = $('tabKp').value;
+  $('hasilUji').innerHTML = '<div class="muat" style="padding:14px 0"><div class="putar"></div>Membaca tab\u2026</div>';
+  try {
+    D.tetapan = await run('simpanTetapan', { tabDelima, tabKp });
+    lukisUji(await run('ujiSenarai'));
+  } catch (e) { mesej(e.message, 'ralat'); $('hasilUji').innerHTML = ''; }
+}
+
+function lukisUji(u) {
+  const t = D.tetapan, semua = u.semuaTab || [];
+  const pilihan = (pilih, jenis, kosong) => kosong + semua.map(x =>
+    `<option value="${esc(x.nama)}" ${x.nama === pilih ? 'selected' : ''}>${esc(x.nama)}${x.jenis === jenis ? ' \u2713' : ''} (${x.baris} baris)</option>`).join('');
+  $('tabDelima').innerHTML = pilihan(t.tabDelima, 'delima', '<option value="">Auto \u2014 semua tab</option>');
+  $('tabKp').innerHTML = pilihan(t.tabKp, 'kp', '<option value="">Tiada / tab yang sama</option>');
+  $('pilihTab').classList.toggle('tersembunyi', semua.length < 2);
+  $('kadTiadaSenarai').classList.toggle('tersembunyi', !!u.bil);
+  const banyak = !t.tabDelima && semua.length > 3;
+  $('hasilUji').innerHTML = (u.bil
+    ? `<div class="banner ok"><span data-ik="semak"></span><div><b>${u.bil} murid</b> dibaca daripada tab: ${esc(u.tab.join(', '))}.<br>
+        ${u.tabKp && u.tabKp.length ? `No. KP diambil dari tab <b>${esc(u.tabKp.join(', '))}</b> dan digabung ikut nama: <b>${u.kpDigabung}</b> murid.<br>` : ''}
+        ${!u.adaKp ? '<b>Tiada No. KP</b> \u2014 padanan dibuat ikut nama.' : u.tanpaKp ? `<span style="color:#7a5500"><b>${u.tanpaKp} murid tiada No. KP</b> (nama tidak sepadan antara tab) \u2014 padanan mereka dibuat ikut nama.</span>` : 'Semua murid ada No. KP \u2713'}<br>
+        Contoh: ${u.contoh.map(c => esc(c.nama) + ' \u2192 ' + esc(c.delima)).join('; ')}</div></div>`
+    : `<div class="banner amaran"><span data-ik="amaran"></span><div>Tiada murid dibaca. Pilih tab yang mempunyai lajur <b>Nama</b> dan <b>ID DELIMa / Emel</b>.</div></div>`)
+    + (banyak ? `<div class="banner amaran"><span data-ik="amaran"></span><div>Sheet ini ada ${semua.length} tab. Pilih <b>Tab ID DELIMa</b> (dan <b>Tab No. KP</b>) di atas supaya tab lain seperti senarai guru tidak dibaca sebagai murid.</div></div>` : '');
+  pasangIkon($('hasilUji'));
 }
 function salinPautan() {
   const t = $('pautanApp').textContent;
