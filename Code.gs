@@ -16,7 +16,7 @@
  *    Who has access:  Anyone within Kementerian Pendidikan Malaysia (moe-dl.edu.my)
  */
 
-const VERSI = '1.0.5';
+const VERSI = '1.0.6';
 const NAMA_SEKOLAH = 'SM Sains Kuala Selangor';   // tukar mengikut sekolah anda
 const FAVICON_URL = 'https://raw.githubusercontent.com/g-03355699-tech/pbdku/main/docs/ikon/ikon-32.png';
 const NAMA_FOLDER = 'PBDku - Laporan Murid';
@@ -24,7 +24,7 @@ const TAB = { laporan: 'Laporan', admin: 'Admin', log: 'Log' };
 const KEPALA = {
   Laporan: ['Masa', 'Tajuk', 'Kelas', 'NoKP', 'Nama', 'ID DELIMa', 'FileID', 'Saiz (KB)', 'Dimuat naik oleh'],
   Admin: ['Emel', 'Nama', 'Catatan'],
-  Log: ['Masa', 'Emel', 'Tindakan', 'Butiran']
+  Log: ['Masa', 'Emel', 'Tindakan', 'Butiran', 'FileID']
 };
 
 /* ============================ Web app ============================ */
@@ -58,6 +58,7 @@ function muatAwal() {
     return {
       peranan: 'ADMIN', emel, versi: VERSI, sekolah: NAMA_SEKOLAH, url,
       nama: namaAdmin_(emel),
+      pemilik: adalahPemilik_(emel),
       tetapan: bacaTetapan_(),
       ringkasan: ringkasan_()
     };
@@ -136,7 +137,7 @@ function muatTurun(fileId) {
   }
 
   const blob = DriveApp.getFileById(fileId).getBlob();
-  log_(emel, admin ? 'ADMIN_MUAT_TURUN' : 'MUAT_TURUN', `${baris.nama} · ${baris.tajuk}`);
+  log_(emel, admin ? 'ADMIN_MUAT_TURUN' : 'MUAT_TURUN', `${baris.nama} · ${baris.tajuk}`, fileId);
   return {
     namaFail: `${bersihNamaFail_(baris.tajuk)}_${bersihNamaFail_(baris.nama)}.pdf`,
     data: Utilities.base64Encode(blob.getBytes())
@@ -213,10 +214,42 @@ function simpanLaporan(x) {
 /** Senarai laporan untuk paparan admin. */
 function senaraiLaporan() {
   wajibAdmin_();
-  return bacaLaporan_().map(r => ({
-    id: r.fileId, tajuk: r.tajuk, kelas: r.kelas, kp: r.kp, nama: r.nama,
-    delima: r.delima, masa: tarikhIso_(r.masa), saiz: r.saiz
-  }));
+  const st = statusIbuBapa_();
+  // ID DELIMa semasa ikut No. KP (untuk laporan yang dimuat naik sebelum senarai disambung)
+  const delimaIkutKp = {};
+  senaraiMurid_().senarai.forEach(m => { if (m.kp) delimaIkutKp[m.kp] = m.delima; });
+  return bacaLaporan_().map(r => {
+    const delima = r.delima || (r.kp && delimaIkutKp[r.kp]) || '';
+    const m = delima ? st.masuk[delima] : null;
+    const d = st.fail[r.fileId] || (delima && st.emelTajuk[delima + '|' + r.tajuk]) || null;
+    return {
+      id: r.fileId, tajuk: r.tajuk, kelas: r.kelas, kp: r.kp, nama: r.nama,
+      delima, masa: tarikhIso_(r.masa), saiz: r.saiz,
+      bilMasuk: m ? m.kali : 0, akhirMasuk: m ? tarikhIso_(m.akhir) : '',
+      bilMuatTurun: d ? d.kali : 0, akhirMuatTurun: d ? tarikhIso_(d.akhir) : ''
+    };
+  });
+}
+
+/** Ringkasan aktiviti ibu bapa daripada tab Log (log masuk ikut emel, muat turun ikut fail). */
+function statusIbuBapa_() {
+  const masuk = {}, fail = {}, emelTajuk = {};
+  const sh = SpreadsheetApp.getActive().getSheetByName(TAB.log);
+  if (!sh || sh.getLastRow() < 2) return { masuk, fail, emelTajuk };
+  const tambah = (peta, k, masa) => {
+    const x = peta[k] = peta[k] || { kali: 0, akhir: masa };
+    x.kali++; if (masa > x.akhir) x.akhir = masa;
+  };
+  sh.getRange(2, 1, sh.getLastRow() - 1, 5).getValues().forEach(r => {
+    const masa = r[0] instanceof Date ? r[0] : new Date(r[0]);
+    const emel = String(r[1]).toLowerCase(), t = r[2];
+    if (t === 'LOG_MASUK') tambah(masuk, emel, masa);
+    else if (t === 'MUAT_TURUN') {
+      if (r[4]) tambah(fail, String(r[4]), masa);
+      else tambah(emelTajuk, emel + '|' + String(r[3]).split(' \u00B7 ').slice(1).join(' \u00B7 '), masa);   // rekod lama
+    }
+  });
+  return { masuk, fail, emelTajuk };
 }
 
 /** Padam laporan (fail ke Trash + buang baris). */
@@ -244,6 +277,8 @@ function padamLaporan(ids) {
 function simpanTetapan(t) {
   const emel = wajibAdmin_();
   const p = PropertiesService.getScriptProperties();
+  if ((t.senaraiUrl || t.tabDelima !== undefined || t.tabKp !== undefined) && !adalahPemilik_(emel))
+    throw new Error('Hanya pemilik PBDku boleh menukar Sheet senarai murid.');
   const url = String(t.senaraiUrl || '').trim();
   if (url) {
     const id = idDariUrl_(url);
@@ -269,7 +304,7 @@ function simpanTetapan(t) {
 
 /** Uji Sheet senarai murid: pulangkan bilangan murid & contoh lajur dikesan. */
 function ujiSenarai() {
-  wajibAdmin_();
+  if (!adalahPemilik_(wajibAdmin_())) throw new Error('Hanya pemilik PBDku boleh menguji Sheet senarai murid.');
   CacheService.getScriptCache().remove('senarai');
   const s = senaraiMurid_();
   const id = PropertiesService.getScriptProperties().getProperty('SENARAI_ID');
@@ -436,6 +471,11 @@ function namaAdmin_(emel) {
   return emel.split('@')[0];
 }
 
+/** Pemilik skrip (akaun yang men-deploy) — satu-satunya yang boleh akses Sheet & folder secara terus. */
+function adalahPemilik_(emel) {
+  return !!emel && emel === String(Session.getEffectiveUser().getEmail()).toLowerCase();
+}
+
 function wajibAdmin_() {
   const emel = emelSemasa_();
   if (!adalahAdmin_(emel)) throw new Error('TIADA_AKSES');
@@ -445,19 +485,21 @@ function wajibAdmin_() {
 function bacaTetapan_() {
   const p = PropertiesService.getScriptProperties();
   const id = p.getProperty('SENARAI_ID');
+  const pemilik = adalahPemilik_(emelSemasa_());
   const sh = tab_(TAB.admin);
   const admin = sh.getLastRow() > 1
     ? sh.getRange(2, 1, sh.getLastRow() - 1, 2).getValues().filter(r => r[0]).map(r => ({ emel: r[0], nama: r[1] }))
     : [];
   return {
-    senaraiUrl: id ? `https://docs.google.com/spreadsheets/d/${id}/edit` : '',
+    adaSenarai: !!id,
+    senaraiUrl: pemilik && id ? `https://docs.google.com/spreadsheets/d/${id}/edit` : '',
     pemilik: Session.getEffectiveUser().getEmail(),
     admin,
     tutup: !!p.getProperty('TUTUP'),
-    tabDelima: p.getProperty('TAB_DELIMA') || '',
-    tabKp: p.getProperty('TAB_KP') || '',
-    dataUrl: SpreadsheetApp.getActive().getUrl(),
-    folderUrl: folderUtama_().getUrl()
+    tabDelima: pemilik ? p.getProperty('TAB_DELIMA') || '' : '',
+    tabKp: pemilik ? p.getProperty('TAB_KP') || '' : '',
+    dataUrl: pemilik ? SpreadsheetApp.getActive().getUrl() : '',
+    folderUrl: pemilik ? folderUtama_().getUrl() : ''
   };
 }
 
@@ -492,6 +534,9 @@ function sediaTab_() {
         .setFontWeight('bold').setBackground('#0f766e').setFontColor('#ffffff');
       sh.setFrozenRows(1);
       if (n === TAB.laporan) sh.getRange('D:D').setNumberFormat('@');
+    } else if (sh.getRange(1, KEPALA[n].length).getValue() === '') {     // naik taraf: lajur baharu
+      sh.getRange(1, 1, 1, KEPALA[n].length).setValues([KEPALA[n]])
+        .setFontWeight('bold').setBackground('#0f766e').setFontColor('#ffffff');
     }
   });
 }
@@ -513,8 +558,8 @@ function folderKelas_(kelas) {
   return it.hasNext() ? it.next() : induk.createFolder(kelas);
 }
 
-function log_(emel, tindakan, butiran) {
-  try { tab_(TAB.log).appendRow([new Date(), emel, tindakan, butiran || '']); } catch (e) {}
+function log_(emel, tindakan, butiran, fileId) {
+  try { tab_(TAB.log).appendRow([new Date(), emel, tindakan, butiran || '', fileId || '']); } catch (e) {}
 }
 
 function normNama_(s) {

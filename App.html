@@ -184,7 +184,11 @@ function kembaliAdmin() {
 let tabSemasa = 'Naik';
 function bukaAdmin() {
   $('subTajuk').textContent = (D.nama || D.emel) + ' · Admin';
-  $('kadTiadaSenarai').classList.toggle('tersembunyi', !!D.tetapan.senaraiUrl);
+  $('kadTiadaSenarai').classList.toggle('tersembunyi', !!D.tetapan.adaSenarai);
+  $('kadSenarai').classList.toggle('tersembunyi', !D.pemilik);
+  $('kadData').classList.toggle('tersembunyi', !D.pemilik);
+  $('btnTiadaSenarai').classList.toggle('tersembunyi', !D.pemilik);
+  if (!D.pemilik) $('teksTiadaSenarai').textContent = 'Minta pemilik PBDku (' + D.tetapan.pemilik + ') menyambung Sheet senarai murid dalam Tetapan.';
   lukisRingkasanBil();
   lukisTetapan();
   paparan('vAdmin');
@@ -418,36 +422,81 @@ async function muatLaporan() {
   catch (e) { $('senaraiLaporan').innerHTML = `<div class="kosong">${esc(e.message)}</div>`; }
 }
 
+const STATUS_L = {
+  turun: { label: 'Dimuat turun', kelas: 'selesai', lencana: 'selesai' },
+  buka:  { label: 'Dibuka, belum muat turun', kelas: 'separa', lencana: 'separa' },
+  belum: { label: 'Belum dibuka', kelas: 'belum', lencana: 'belum' },
+  tiada: { label: 'Tiada ID DELIMa', kelas: 'tiada', lencana: 'kelabu' }
+};
+const statusL = r => r.bilMuatTurun ? 'turun' : !r.delima ? 'tiada' : r.bilMasuk ? 'buka' : 'belum';
+const masaPapar = s => { const m = /T(\d{2}):(\d{2})/.exec(s || ''); return tarikhPapar(s) + (m ? ', ' + m[1] + ':' + m[2] : ''); };
+let tapisL = 'semua', kunciL = [];
+
 function lukisLaporan() {
   if (!L) return;
   const q = $('cariLaporan').value.trim().toUpperCase();
-  const kelas = new Set(L.map(r => r.kelas)), tanpa = L.filter(r => !r.delima).length;
-  $('statLaporan').innerHTML = `<div><b>${L.length}</b><span>Laporan</span></div><div><b>${kelas.size}</b><span>Kelas</span></div>
-    <div class="${tanpa ? 'merah' : 'hijau'}"><b>${tanpa}</b><span>Tiada DELIMa</span></div>`;
-  const tapis = q ? L.filter(r => r.nama.indexOf(q) >= 0 || r.kp.indexOf(q.replace(/\D/g, '') || '~') >= 0) : L;
+  const kira = { turun: 0, buka: 0, belum: 0, tiada: 0 };
+  L.forEach(r => kira[statusL(r)]++);
+  const pc = n => L.length ? Math.round(n / L.length * 100) : 0;
+  $('statLaporan').innerHTML = `
+    <div class="hijau"><b>${kira.turun} <small>${pc(kira.turun)}%</small></b><span>Dimuat turun</span></div>
+    <div class="kuning"><b>${kira.buka}</b><span>Dibuka, belum muat turun</span></div>
+    <div class="merah"><b>${kira.belum}</b><span>Belum dibuka</span></div>
+    <div><b>${kira.tiada}</b><span>Tiada ID DELIMa</span></div>`;
+  $('tapisStatus').innerHTML = [['semua', 'Semua', L.length], ['turun', 'Dimuat turun', kira.turun], ['buka', 'Dibuka sahaja', kira.buka],
+    ['belum', 'Belum dibuka', kira.belum], ['tiada', 'Tiada DELIMa', kira.tiada]]
+    .map(([k, t, n]) => `<button class="${tapisL === k ? 'on' : ''}" onclick="tapisL='${k}';lukisLaporan()">${t}<i>${n}</i></button>`).join('');
+
+  let tapis = q ? L.filter(r => r.nama.indexOf(q) >= 0 || r.kp.indexOf(q.replace(/\D/g, '') || '~') >= 0) : L;
+  if (tapisL !== 'semua') tapis = tapis.filter(r => statusL(r) === tapisL);
   const kump = {};
   tapis.forEach(r => { const k = r.tajuk + '\u0001' + r.kelas; (kump[k] = kump[k] || []).push(r); });
-  const kunci = Object.keys(kump).sort();
+  const semuaIkutK = {};
+  L.forEach(r => { const k = r.tajuk + '\u0001' + r.kelas; (semuaIkutK[k] = semuaIkutK[k] || []).push(r); });
+  const kunci = kunciL = Object.keys(kump).sort();
   $('ketLaporan').textContent = kunci.length ? kunci.length + ' kumpulan' : '';
   $('senaraiLaporan').innerHTML = kunci.length ? kunci.map(k => {
     const s = kump[k].sort((a, b) => a.nama.localeCompare(b.nama)), [tajuk, kls] = k.split('\u0001');
-    const t = s.filter(r => !r.delima).length;
-    return `<details class="lipat" ${q ? 'open' : ''}><summary>
-        <div class="ikon-mod" style="width:38px;height:38px;border-radius:11px;background:#ddf2ef;color:var(--navy);display:grid;place-items:center">${ik('kelas')}</div>
-        <div style="min-width:0"><b>${esc(kls)}</b><span class="k">${esc(tajuk)} · ${s.length} murid${t ? ` · <span style="color:var(--merah)">${t} tiada DELIMa</span>` : ''}</span></div>
+    const penuh = semuaIkutK[k], turun = penuh.filter(r => r.bilMuatTurun).length, p = Math.round(turun / penuh.length * 100);
+    const belumTurun = penuh.filter(r => !r.bilMuatTurun).length;
+    return `<details class="lipat" ${q || tapisL !== 'semua' ? 'open' : ''}><summary>
+        <div class="ikon-mod" style="width:38px;height:38px;border-radius:11px;background:#ddf2ef;color:var(--navy);display:grid;place-items:center;flex-shrink:0">${ik('kelas')}</div>
+        <div style="min-width:0;flex:1"><b>${esc(kls)}</b><span class="k">${esc(tajuk)} · ${penuh.length} murid</span>
+          <div class="kemajuan-kelas"><div class="trek"><div class="isi ${p === 100 ? 'penuh' : ''}" style="width:${p}%"></div></div><span>${turun}/${penuh.length} dimuat turun</span></div></div>
         <span class="anak">${ik('anak')}</span></summary>
       <div class="badan">
-        ${s.map(r => `<div class="rekod ${r.delima ? 'selesai' : 'belum'}">
-          <div class="isi"><div class="tajuk-r">${esc(r.nama)}</div>
-            <div class="meta">${r.kp ? `<span>${ik('ic')}${esc(kpSeparuh(r.kp))}</span>` : ''}<span>${ik('kalendar')}${tarikhPapar(r.masa)}</span>
-            ${r.delima ? `<span>${ik('emel')}${esc(r.delima)}</span>` : '<span style="color:var(--merah)">Tiada ID DELIMa</span>'}</div></div>
-          <div class="kanan"><button class="pautan" onclick="mulaPratonton('${esc(r.kp || r.nama.replace(/['"\\]/g, ''))}', this)">${ik('mata')}Lihat</button>
+        ${s.map(r => { const st = statusL(r), S = STATUS_L[st];
+          const ket = st === 'turun' ? `${ik('muatturun')}Dimuat turun ${masaPapar(r.akhirMuatTurun)}${r.bilMuatTurun > 1 ? ` (${r.bilMuatTurun}\u00D7)` : ''}`
+            : st === 'buka' ? `${ik('mata')}Log masuk terakhir ${masaPapar(r.akhirMasuk)}` : '';
+          return `<div class="rekod rl ${S.kelas}">
+          <div class="atas-r"><div class="tajuk-r">${esc(r.nama)}</div><span class="status ${S.lencana}">${st === 'turun' ? 'Dimuat turun' : st === 'buka' ? 'Dibuka' : S.label}</span></div>
+          <div class="meta">${r.kp ? `<span>${ik('ic')}${esc(kpSeparuh(r.kp))}</span>` : ''}
+            ${r.delima ? `<span>${ik('emel')}${esc(r.delima)}</span>` : ''}</div>
+          ${ket ? `<div class="meta ket-st ${st}">${ket}</div>` : ''}
+          <div class="tindakan"><button class="pautan" onclick="mulaPratonton('${esc(r.kp || r.nama.replace(/['"\\]/g, ''))}', this)">${ik('mata')}Lihat</button>
             <button class="pautan" onclick="muatTurun(this,'${esc(r.id)}')">${ik('muatturun')}PDF</button>
             <button class="padam" onclick="padam(['${esc(r.id)}'],'laporan ${esc(r.nama.replace(/['"\\]/g, ''))}')">${ik('padam')}Padam</button></div>
-        </div>`).join('')}
-        <button class="btn bahaya" onclick="padam(${esc(JSON.stringify(s.map(r => r.id)))},'${s.length} laporan ${esc(kls.replace(/['"\\]/g, ''))}')">${ik('padam')}Padam semua laporan kelas ini</button>
+        </div>`; }).join('')}
+        ${belumTurun ? `<button class="btn sekunder" onclick="salinBelum(${kunci.indexOf(k)})">${ik('tampal')}Salin senarai ${belumTurun} murid belum muat turun</button>` : ''}
+        <button class="btn bahaya" onclick="padam(${esc(JSON.stringify(s.map(r => r.id)))},'${s.length} laporan ${esc(kls.replace(/['"\\]/g, ''))}')">${ik('padam')}Padam ${s.length === penuh.length ? 'semua laporan kelas ini' : s.length + ' laporan yang dipaparkan'}</button>
       </div></details>`;
-  }).join('') : `<div class="kosong">${q ? 'Tiada padanan.' : 'Belum ada laporan. Muat naik di tab Muat naik.'}</div>`;
+  }).join('') : `<div class="kosong">${q || tapisL !== 'semua' ? 'Tiada padanan.' : 'Belum ada laporan. Muat naik di tab Muat naik.'}</div>`;
+}
+
+/** Salin senarai murid yang belum muat turun (untuk peringatan dalam group WhatsApp kelas). */
+function salinBelum(n) {
+  const [tajuk, kls] = kunciL[n].split('\u0001');
+  const s = L.filter(r => r.tajuk === tajuk && r.kelas === kls && !r.bilMuatTurun).sort((a, b) => a.nama.localeCompare(b.nama));
+  const teks = `*${tajuk} \u2014 ${kls}*\nLaporan belum dimuat turun (${s.length} murid):\n` +
+    s.map((r, i) => `${i + 1}. ${r.nama}`).join('\n') +
+    `\n\nSila log masuk dengan akaun DELIMa anak di:\n${D.url}`;
+  const ta = document.createElement('textarea'); ta.value = teks; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  let ok = false; try { ok = document.execCommand('copy'); } catch (e) {}
+  ta.remove();
+  if (ok) return mesej('Senarai ' + s.length + ' murid disalin. Tampal dalam WhatsApp.');
+  (navigator.clipboard ? navigator.clipboard.writeText(teks) : Promise.reject()).then(() => mesej('Senarai disalin.'))
+    .catch(() => mesej('Tidak dapat menyalin secara automatik.', 'ralat'));
 }
 
 async function padam(ids, ket) {
