@@ -16,8 +16,9 @@
  *    Who has access:  Anyone within Kementerian Pendidikan Malaysia (moe-dl.edu.my)
  */
 
-const VERSI = '1.0.4';
+const VERSI = '1.0.5';
 const NAMA_SEKOLAH = 'SM Sains Kuala Selangor';   // tukar mengikut sekolah anda
+const FAVICON_URL = 'https://raw.githubusercontent.com/g-03355699-tech/pbdku/main/docs/ikon/ikon-32.png';
 const NAMA_FOLDER = 'PBDku - Laporan Murid';
 const TAB = { laporan: 'Laporan', admin: 'Admin', log: 'Log' };
 const KEPALA = {
@@ -32,6 +33,7 @@ function doGet() {
   return HtmlService.createHtmlOutputFromFile('Index')
     .setTitle('PBDku · SMSKS')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1, viewport-fit=cover')
+    .setFaviconUrl(FAVICON_URL)
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.DEFAULT);
 }
 
