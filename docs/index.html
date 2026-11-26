@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PBDku — laporan PBD murid untuk ibu bapa</title>
+<meta name="description" content="PBDku — web app percuma untuk sekolah mengedarkan laporan PBD (PDF) kepada ibu bapa. Admin muat naik PDF satu kelas, sistem pecahkan ikut murid; ibu bapa log masuk dengan akaun DELIMa anak dan muat turun laporan anak sendiri.">
+<meta property="og:title" content="PBDku — laporan PBD murid untuk ibu bapa">
+<meta property="og:description" content="Ibu bapa muat turun laporan PBD anak menggunakan akaun DELIMa. Fail kekal private dalam Google Drive sekolah.">
+<meta property="og:image" content="https://g-03355699-tech.github.io/pbdku/skrin-1.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#0f766e;--latar:#edf3f2;--teks:#1b1f24;--kelabu:#5f6670;--jubin:#f1f6f5;--hijau:#1f9d55}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:70px}
+body{margin:0;font-family:Poppins,system-ui,sans-serif;color:var(--teks);background:var(--latar);line-height:1.6}
+a{color:var(--navy)}
+svg.ik{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.bekas{max-width:1000px;margin:0 auto;padding:0 20px}
+.hero{background:var(--navy);color:#fff;padding:48px 0 64px;position:relative;overflow:hidden}
+.hero::after{content:"";position:absolute;right:-120px;top:-120px;width:420px;height:420px;border-radius:50%;background:rgba(255,255,255,.05)}
+.hero .grid{display:grid;grid-template-columns:1.3fr .7fr;gap:40px;align-items:center;position:relative;z-index:1}
+.logo{width:76px;height:76px;margin-bottom:14px;color:#fff}
+.hero h1{font-size:clamp(1.9rem,5vw,2.8rem);line-height:1.15;margin:0 0 12px}
+.versi{font-size:.75rem;font-weight:500;background:rgba(255,255,255,.16);padding:3px 10px;border-radius:999px;vertical-align:middle;white-space:nowrap}
+.hero p.lead{font-size:1.02rem;opacity:.92;margin:0 0 26px;max-width:560px}
+.butang{display:inline-flex;align-items:center;gap:10px;background:#fff;color:var(--navy);font-weight:600;font-size:1.1rem;padding:15px 30px;border-radius:12px;text-decoration:none;box-shadow:0 6px 20px rgba(0,0,0,.2);transition:transform .15s}
+.butang:hover{transform:translateY(-2px)}
+.butang.sekunder{background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,.5);box-shadow:none;font-size:.95rem;padding:13px 22px}
+.butang.mati{opacity:.55;pointer-events:none}
+.aksi{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.kecil-hero{font-size:.8rem;opacity:.85;margin-top:14px} .kecil-hero a{color:#fff}
+.qr{background:#fff;border-radius:18px;padding:18px;text-align:center;color:var(--teks);box-shadow:0 10px 30px rgba(0,0,0,.25)}
+.qr #kodQr svg{width:100%;max-width:200px;height:auto;display:block;margin:0 auto}
+.qr small{display:block;color:var(--kelabu);margin-top:6px;font-size:.8rem}
+.qr .tiada{font-size:.85rem;color:var(--kelabu);padding:30px 6px}
+nav.menu{position:sticky;top:0;z-index:10;background:rgba(255,255,255,.96);backdrop-filter:blur(6px);box-shadow:0 1px 6px rgba(10,60,56,.08)}
+nav.menu .bekas{display:flex;gap:4px;overflow-x:auto;padding-top:8px;padding-bottom:8px}
+nav.menu a{flex:none;text-decoration:none;font-size:.85rem;font-weight:500;padding:8px 14px;border-radius:999px;color:#3b4350;white-space:nowrap}
+nav.menu a:hover{background:var(--jubin);color:var(--navy)}
+section{padding:56px 0}
+h2{font-size:1.6rem;margin:0 0 6px;line-height:1.25}
+.sub{color:var(--kelabu);margin:0 0 28px}
+.label-seksyen{display:inline-block;font-size:.7rem;font-weight:600;background:var(--navy);color:#fff;border-radius:999px;padding:3px 10px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px}
+.modul{font-size:1.05rem;margin:26px 0 12px;display:flex;align-items:center;gap:8px}.modul span{font-size:.7rem;font-weight:600;background:var(--navy);color:#fff;border-radius:999px;padding:3px 10px;text-transform:uppercase;letter-spacing:.04em}
+.grid-ciri{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.ciri{background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 10px rgba(10,60,56,.06)}
+.ciri svg.ik{color:var(--navy);width:30px;height:30px}
+.ciri h3{font-size:1rem;margin:10px 0 4px}
+.ciri p{margin:0;font-size:.88rem;color:var(--kelabu)}
+.skrin{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.skrin figure{margin:0;background:#fff;border-radius:18px;padding:10px;box-shadow:0 2px 10px rgba(10,60,56,.06)}
+.skrin img{width:100%;border-radius:12px;display:block}
+.skrin figcaption{font-size:.82rem;color:var(--kelabu);text-align:center;margin-top:8px}
+.langkah{counter-reset:l;display:grid;gap:14px;grid-template-columns:minmax(0,1fr)}
+.l{background:#fff;border-radius:16px;padding:20px 20px 20px 68px;position:relative;box-shadow:0 2px 10px rgba(10,60,56,.06)}
+.l::before{counter-increment:l;content:counter(l);position:absolute;left:20px;top:20px;width:32px;height:32px;border-radius:50%;background:var(--navy);color:#fff;font-weight:600;display:flex;align-items:center;justify-content:center}
+.l h3{margin:0 0 4px;font-size:1rem} .l p{margin:0;color:#3b4350;font-size:.92rem} .l p+p{margin-top:8px}
+.l ul{margin:8px 0 0;padding-left:20px;color:#3b4350;font-size:.9rem}
+.l.penting{border:2px solid #f2d27a;background:#fffbef}
+.l.wa::before{background:var(--hijau)}
+.lakaran{margin-top:12px;border:1px dashed #c9ced6;border-radius:10px;padding:14px;background:#fff;font-size:.85rem;max-width:460px}
+.lakaran .t{font-weight:600;margin-bottom:6px}
+.lakaran .baris{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap}
+.lakaran .medan{border:1px solid #c9ced6;border-radius:6px;padding:4px 10px;background:var(--jubin);font-weight:500}
+.anak-panah{background:#fde68a;border-radius:4px;padding:0 6px;white-space:nowrap;font-size:.78rem}
+.kebenaran{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 12px;margin-top:10px;font-size:.88rem}
+.kebenaran b{color:var(--navy)}
+.jadual{width:100%;border-collapse:collapse;font-size:.85rem;margin-top:10px;background:#fff;border-radius:10px;overflow:hidden}
+.jadual th{background:var(--navy);color:#fff;font-weight:500;text-align:left;padding:8px 10px}
+.jadual td{padding:8px 10px;border-bottom:1px solid #dfeae8}
+.skrol{overflow-x:auto;max-width:100%}
+.jadual td{white-space:nowrap}
+.warna{display:grid;gap:8px;margin-top:10px}
+.warna div{display:flex;gap:10px;align-items:flex-start;font-size:.88rem;color:#3b4350}
+.warna i{flex:none;width:14px;height:14px;border-radius:4px;margin-top:5px}
+.privasi{background:#fff;border-radius:18px;padding:28px;box-shadow:0 2px 10px rgba(10,60,56,.06)}
+.privasi h3{font-size:1rem;margin:20px 0 4px} .privasi h3:first-of-type{margin-top:0}
+.privasi p,.privasi li{font-size:.92rem;color:#3b4350}
+.faq{display:grid;gap:10px}
+.faq details{background:#fff;border-radius:14px;padding:14px 18px;box-shadow:0 2px 10px rgba(10,60,56,.06)}
+.faq summary{cursor:pointer;font-weight:600;font-size:.95rem;list-style:none;display:flex;justify-content:space-between;gap:12px}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:"+";color:var(--navy);font-size:1.3rem;line-height:1}
+.faq details[open] summary::after{content:"−"}
+.faq details p,.faq details li{font-size:.9rem;color:#3b4350;margin:8px 0 0}
+.faq details ul{padding-left:20px;margin:0}
+code{background:var(--jubin);padding:1px 6px;border-radius:5px;font-size:.85em;overflow-wrap:anywhere}
+.nota{background:#ebf7f5;border:1px solid #c4e5e0;color:#1d5550;border-radius:12px;padding:12px 14px;font-size:.88rem;margin-top:14px}
+.nota.amaran{background:#fff6dc;border-color:#f2d27a;color:#7a5500}
+.dua{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.pembangun{background:#fff;border-radius:18px;padding:20px 24px;box-shadow:0 2px 10px rgba(10,60,56,.06);display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.pembangun .m{flex:1;min-width:220px;color:var(--kelabu);font-size:.92rem}
+.pembangun .m b{color:var(--teks);font-size:1.05rem}
+.btn-derma{display:inline-flex;align-items:center;gap:8px;background:#f2a600;color:#1b1f24;border:0;border-radius:12px;padding:12px 20px;font-family:inherit;font-weight:600;font-size:.95rem;cursor:pointer;text-decoration:none}
+.btn-derma:hover{background:#e09a00}
+.derma-qr{display:none;text-align:center;width:100%}
+.derma-qr.buka{display:block}
+.derma-qr img{max-width:260px;width:100%;border-radius:12px;border:1px solid #c9ced6;margin:12px auto 4px;display:block}
+footer{text-align:center;color:var(--kelabu);font-size:.85rem;padding:30px 20px 50px}
+@media (max-width:760px){ .hero .grid{grid-template-columns:1fr} .qr{display:none} .grid-ciri{grid-template-columns:1fr 1fr} .skrin{grid-template-columns:1fr 1fr} .dua{grid-template-columns:1fr} }
+@media (max-width:480px){ .grid-ciri{grid-template-columns:1fr} .butang{width:100%;justify-content:center} .l{padding-left:20px;padding-top:62px} }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+<symbol id="i-kunci" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+<symbol id="i-muatturun" viewBox="0 0 24 24"><path d="M12 4v12M7 11l5 5 5-5M4 20h16"/></symbol>
+<symbol id="i-muatnaik" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></symbol>
+<symbol id="i-pecah" viewBox="0 0 24 24"><path d="M6 2h9l5 5v6"/><path d="M6 2v11"/><path d="M3 17h18M7 21h10"/></symbol>
+<symbol id="i-padan" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></symbol>
+<symbol id="i-wa" viewBox="0 0 24 24"><path d="M4 20l1.3-3.9A8 8 0 1 1 8 19z"/><path d="M9.2 8.6c-.4 2.9 2.8 6.4 6 6.3l.9-1.5-1.9-1-1 .7a4 4 0 0 1-2-2l.7-1-1-1.9z"/></symbol>
+<symbol id="i-sheet" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M4 9h16M4 15h16M10 3v18"/></symbol>
+<symbol id="i-pdf" viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></symbol>
+<symbol id="i-log" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+<symbol id="i-guru" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.2a5 5 0 0 1 5.5 4.8"/></symbol>
+<symbol id="i-kelas" viewBox="0 0 24 24"><path d="M3 9l9-5 9 5-9 5z"/><path d="M7 11v5c3 2 7 2 10 0v-5"/></symbol>
+<symbol id="i-tutup" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M8 3v4M16 3v4M9 14l6 4M15 14l-6 4"/></symbol>
+<symbol id="i-telefon" viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></symbol>
+<symbol id="i-hati" viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></symbol>
+</svg>
+
+<header class="hero">
+  <div class="bekas">
+    <div class="grid">
+      <div>
+        <svg class="logo" viewBox="0 0 64 64" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M16 8h22l10 10v38H16z"/><path d="M38 8v10h10"/>
+          <path d="M23 30h18M23 37h18M23 44h10"/>
+          <circle cx="44" cy="48" r="8" fill="#0f766e"/><path d="M40.5 48l2.5 2.5 4.5-5"/>
+        </svg>
+        <h1>PBDku <span class="versi">v1.0.0</span></h1>
+        <p class="lead">Laporan PBD murid terus ke tangan ibu bapa. Admin sekolah muat naik PDF laporan satu kelas, dan PBDku memecahkannya ikut murid secara automatik. Ibu bapa log masuk dengan <b>akaun DELIMa anak</b> dan hanya boleh memuat turun laporan anak sendiri. <b>Percuma</b>, dan semua fail kekal private dalam Google Drive sekolah.</p>
+        <div class="aksi">
+          <a class="butang" id="btnBuka" href="#" target="_blank" rel="noopener">Buka App →</a>
+          <a class="butang sekunder" href="#ibubapa">Panduan ibu bapa</a>
+        </div>
+        <div class="kecil-hero">Ibu bapa: anda hanya perlukan ID &amp; kata laluan DELIMa anak. Tiada app perlu dipasang.</div>
+      </div>
+      <div class="qr"><div id="kodQr"></div><small>Imbas dengan kamera telefon untuk buka app</small></div>
+    </div>
+  </div>
+</header>
+
+<nav class="menu"><div class="bekas">
+  <a href="#ciri">Ciri</a><a href="#ibubapa">Ibu bapa</a><a href="#soalan">Soalan lazim</a><a href="#admin">Guru / admin</a><a href="#pasang">Pemasangan</a><a href="#privasi">Privasi</a><a href="#derma">Derma</a>
+</div></nav>
+
+<section id="ciri">
+  <div class="bekas">
+    <h2>Apa yang boleh dibuat</h2>
+    <p class="sub">Satu pautan untuk semua ibu bapa, satu skrin untuk admin memuat naik laporan semua kelas.</p>
+    <h3 class="modul"><span>Ibu bapa</span> Muat turun laporan anak</h3>
+    <div class="grid-ciri">
+      <div class="ciri"><svg class="ik"><use href="#i-kunci"/></svg><h3>Log masuk akaun DELIMa</h3><p>Google mengesahkan akaun DELIMa anak. Tiada kod rahsia atau kata laluan tambahan untuk diingat.</p></div>
+      <div class="ciri"><svg class="ik"><use href="#i-muatturun"/></svg><h3>Laporan anak sahaja</h3><p>Ibu bapa hanya nampak laporan anak sendiri. Satu tekan, PDF disimpan ke telefon atau komputer.</p></div>
+      <div class="ciri"><svg class="ik"><use href="#i-pdf"/></svg><h3>Semua laporan di satu tempat</h3><p>PBD pertengahan tahun, akhir tahun dan laporan lain akan tersenarai bersama, yang terbaharu di atas.</p></div>
+    </div>
+    <h3 class="modul"><span>Admin</span> Muat naik &amp; urus laporan</h3>
+    <div class="grid-ciri">
+      <div class="ciri"><svg class="ik"><use href="#i-muatnaik"/></svg><h3>Muat naik dari web app</h3><p>Pilih atau seret fail PDF terus dari telefon atau komputer. Boleh beberapa fail (beberapa kelas) sekali gus.</p></div>
+      <div class="ciri"><svg class="ik"><use href="#i-pecah"/></svg><h3>Pecah ikut murid automatik</h3><p>Nama &amp; No. KP dibaca pada setiap halaman. Laporan dua halaman bagi seorang murid pun dikumpulkan dengan betul.</p></div>
+      <div class="ciri"><svg class="ik"><use href="#i-padan"/></svg><h3>Semak padanan dahulu</h3><p>Sebelum muat naik, app tunjukkan murid yang ada ID DELIMa dan yang tiada dalam senarai.</p></div>
+      <div class="ciri"><svg class="ik"><use href="#i-sheet"/></svg><h3>Senarai DELIMa berasingan</h3><p>Nama &amp; ID DELIMa murid dalam Google Sheet anda sendiri. Satu tab satu kelas pun boleh.</p></div>
+      <div class="ciri"><svg class="ik"><use href="#i-wa"/></svg><h3>Kongsi melalui WhatsApp</h3><p>Satu butang menyediakan mesej lengkap dengan pautan &amp; cara log masuk untuk group kelas.</p></div>
+      <div class="ciri"><svg class="ik"><use href="#i-tutup"/></svg><h3>Buka / tutup semakan</h3><p>Hentikan akses ibu bapa sementara (contohnya sebelum Hari Bertemu Guru) dengan satu suis.</p></div>
+      <div class="ciri"><svg class="ik"><use href="#i-guru"/></svg><h3>Beberapa admin</h3><p>Tambah Penolong Kanan atau guru data sebagai admin menggunakan emel DELIMa mereka.</p></div>
+      <div class="ciri"><svg class="ik"><use href="#i-log"/></svg><h3>Log muat turun</h3><p>Setiap log masuk dan muat turun ibu bapa direkod dalam tab <code>Log</code>.</p></div>
+      <div class="ciri"><svg class="ik"><use href="#i-kelas"/></svg><h3>Ganti &amp; padam</h3><p>Muat naik semula laporan yang sama akan menggantikan fail lama. Padam seorang murid atau satu kelas sekali gus.</p></div>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top:0">
+  <div class="bekas">
+    <div class="skrin">
+      <figure><img src="skrin-1.jpg" alt="Paparan ibu bapa: senarai laporan anak dan butang muat turun" loading="lazy"><figcaption>Paparan ibu bapa</figcaption></figure>
+      <figure><img src="skrin-2.jpg" alt="Admin: semak padanan murid selepas pilih PDF" loading="lazy"><figcaption>Admin · semak padanan</figcaption></figure>
+      <figure><img src="skrin-3.jpg" alt="Admin: senarai laporan ikut kelas" loading="lazy"><figcaption>Admin · senarai laporan</figcaption></figure>
+      <figure><img src="skrin-4.jpg" alt="Admin: tetapan pautan, Sheet senarai dan admin" loading="lazy"><figcaption>Admin · tetapan</figcaption></figure>
+    </div>
+    <p class="sub" style="text-align:center;margin-top:10px;font-size:.8rem">Tangkapan skrin menggunakan data rekaan.</p>
+  </div>
+</section>
+
+<!-- ============ IBU BAPA ============ -->
+<section id="ibubapa" style="padding-top:0">
+  <div class="bekas">
+    <span class="label-seksyen">Untuk ibu bapa</span>
+    <h2>Cara muat turun laporan anak</h2>
+    <p class="sub">Kurang dua minit. Boleh guna telefon atau komputer.</p>
+    <div class="langkah">
+      <div class="l wa"><h3>Buka pautan daripada guru kelas</h3><p>Pautan PBDku biasanya dihantar dalam group WhatsApp kelas. Tekan pautan tersebut.</p></div>
+      <div class="l"><h3>Log masuk dengan akaun DELIMa anak</h3>
+        <p>Halaman log masuk Google akan muncul. Masukkan ID DELIMa anak dan kata laluannya.</p>
+        <div class="lakaran">
+          <div class="t">Sign in · Google</div>
+          <div class="baris"><span class="anak-panah">Emel</span> <span class="medan">m-1234567@moe-dl.edu.my</span></div>
+          <div class="baris"><span class="anak-panah">Kata laluan</span> <span class="medan">••••••••</span></div>
+        </div>
+        <p>ID DELIMa murid biasanya bermula dengan <code>m-</code> dan berakhir dengan <code>@moe-dl.edu.my</code>.</p>
+      </div>
+      <div class="l penting"><h3>Sudah log masuk akaun Gmail sendiri?</h3>
+        <p>Jika telefon anda sudah log masuk akaun Gmail peribadi, Google mungkin memaparkan <i>“You need access”</i> atau <i>“Sorry, unable to open the file”</i>. Ini bermakna akaun yang salah sedang digunakan.</p>
+        <p>Tekan ikon profil (bulatan di penjuru kanan atas) → <b>Add another account</b> / <b>Tambah akaun</b> → log masuk dengan akaun DELIMa anak. Atau buka pautan dalam <b>tetingkap inkognito / peribadi</b>.</p>
+      </div>
+      <div class="l"><h3>Tekan “Muat turun”</h3><p>Nama dan kelas anak akan dipaparkan bersama senarai laporan. Tekan <b>Muat turun</b> pada laporan yang dikehendaki.</p></div>
+      <div class="l"><h3>Buka fail PDF</h3>
+        <ul>
+          <li><b>Android:</b> buka app <i>Files / Fail</i> → <i>Downloads / Muat turun</i>, atau tarik bar notifikasi ke bawah.</li>
+          <li><b>iPhone / iPad:</b> buka app <i>Files</i> → <i>Downloads</i>. Jika laporan terbuka terus di Safari, tekan ikon <i>Kongsi</i> → <i>Save to Files</i>.</li>
+          <li><b>Komputer:</b> folder <i>Downloads</i>.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="soalan" style="padding-top:0">
+  <div class="bekas">
+    <h2>Soalan lazim ibu bapa</h2>
+    <p class="sub">Masalah biasa dan cara menyelesaikannya.</p>
+    <div class="faq">
+      <details><summary>Saya tidak tahu ID atau kata laluan DELIMa anak.</summary>
+        <p>Tanya anak dahulu, kerana akaun ini digunakan untuk Google Classroom. Jika masih tidak tahu atau terlupa kata laluan, hubungi guru kelas atau guru ICT/penyelaras DELIMa sekolah untuk set semula kata laluan.</p></details>
+      <details><summary>Muncul “Akaun tidak ditemui dalam senarai murid”.</summary>
+        <p>Anda sudah log masuk dengan akaun DELIMa, tetapi bukan akaun anak yang berdaftar (contohnya akaun adik-beradik atau akaun guru). Tekan <b>Log masuk dengan akaun DELIMa anak</b> dan pilih akaun yang betul. Jika pasti akaun itu betul, maklumkan kepada guru kelas supaya ID DELIMa anak dikemas kini dalam senarai sekolah.</p></details>
+      <details><summary>Muncul “You need access” atau halaman Google Drive yang tidak boleh dibuka.</summary>
+        <p>Anda sedang menggunakan akaun Gmail peribadi. PBDku hanya dibuka untuk akaun DELIMa (<code>@moe-dl.edu.my</code>). Ikut langkah <a href="#ibubapa">“Sudah log masuk akaun Gmail sendiri?”</a> di atas.</p></details>
+      <details><summary>Tertulis “Belum ada laporan untuk anak anda”.</summary>
+        <p>Laporan kelas anak belum dimuat naik oleh pihak sekolah. Sila semak semula kemudian atau tanya guru kelas.</p></details>
+      <details><summary>Tertulis “Semakan laporan ditutup”.</summary>
+        <p>Pihak sekolah menutup akses buat sementara waktu, contohnya sebelum Hari Bertemu Guru atau selepas tempoh semakan tamat. Ikut makluman guru kelas.</p></details>
+      <details><summary>Saya ada lebih daripada seorang anak di sekolah ini.</summary>
+        <p>Setiap anak ada akaun DELIMa sendiri. Selepas memuat turun laporan anak pertama, tekan <b>Bukan anak anda? Tukar akaun</b> dan log masuk dengan akaun DELIMa anak kedua.</p></details>
+      <details><summary>Butang “Muat turun” ditekan tetapi tiada apa-apa berlaku.</summary>
+        <ul><li>Tunggu beberapa saat. Butang akan tertulis <i>Memuat turun…</i> semasa fail disediakan.</li>
+          <li>Semak folder Downloads atau notifikasi telefon.</li>
+          <li>Jika dibuka dari dalam WhatsApp, tekan <b>⋮ → Buka dalam Chrome / Safari</b> dan cuba semula.</li></ul></details>
+      <details><summary>Nama atau maklumat dalam laporan salah.</summary>
+        <p>PBDku hanya mengedarkan fail laporan yang dijana oleh sistem PBD. Sila hubungi guru kelas untuk sebarang pembetulan.</p></details>
+      <details><summary>Adakah orang lain boleh melihat laporan anak saya?</summary>
+        <p>Tidak. Hanya akaun DELIMa anak anda (dan admin sekolah) boleh membuka laporan itu. Jangan kongsi kata laluan DELIMa anak dengan orang lain.</p></details>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ADMIN ============ -->
+<section id="admin">
+  <div class="bekas">
+    <span class="label-seksyen">Untuk guru / admin</span>
+    <h2>Sediakan senarai murid &amp; muat naik laporan</h2>
+    <p class="sub">Admin ialah pemilik skrip dan sesiapa yang didaftarkan dalam <b>Tetapan → Admin</b>.</p>
+
+    <h3 style="margin:0 0 10px">A. Sheet senarai murid &amp; ID DELIMa</h3>
+    <div class="langkah">
+      <div class="l"><h3>Sediakan Google Sheet berasingan</h3>
+        <p>Baris pertama ialah tajuk lajur. Susunan lajur tidak penting. PBDku mengesan lajur ikut tajuknya.</p>
+        <div class="skrol"><table class="jadual">
+          <tr><th>Nama</th><th>No. KP</th><th>Kelas</th><th>ID DELIMa</th></tr>
+          <tr><td>AHMAD BIN ALI</td><td>130101101234</td><td>1 BERLIAN</td><td>m-1234567@moe-dl.edu.my</td></tr>
+          <tr><td>SITI BINTI OMAR</td><td>130202141122</td><td>1 BERLIAN</td><td>m-1234568@moe-dl.edu.my</td></tr>
+        </table></div>
+        <div class="kebenaran">
+          <b>Nama</b><span>Wajib.</span>
+          <b>ID DELIMa</b><span>Wajib. Tajuk lajur mengandungi perkataan <i>DELIMa</i> atau <i>Emel</i>. Jika hanya <code>m-1234567</code> ditulis, <code>@moe-dl.edu.my</code> ditambah automatik.</span>
+          <b>No. KP</b><span>Sangat digalakkan. Laporan dipadankan ikut No. KP. Tanpanya, padanan dibuat ikut nama (BIN/BINTI, A/L, A/P diabaikan).</span>
+          <b>Kelas</b><span>Pilihan. Jika tiada, nama tab digunakan sebagai kelas, jadi satu tab satu kelas pun boleh.</span>
+        </div>
+        <p style="margin-top:10px">Senarai ID DELIMa murid boleh diminta daripada penyelaras DELIMa sekolah.</p>
+      </div>
+      <div class="l"><h3>Sambungkan dalam Tetapan</h3><p>Buka PBDku → tab <b>Tetapan</b> → tampal URL Sheet → <b>Simpan &amp; uji</b>. App memaparkan bilangan murid yang dibaca dan contoh padanan. Sheet ini <b>tidak perlu dikongsi</b> dengan sesiapa. Cukup pemilik skrip ada akses.</p></div>
+    </div>
+
+    <h3 style="margin:26px 0 10px">B. Muat naik laporan kelas</h3>
+    <div class="langkah">
+      <div class="l"><h3>Dapatkan PDF laporan PBD satu kelas</h3><p>Cetak / simpan laporan PBD satu kelas sebagai satu fail PDF daripada sistem PBD (satu halaman atau lebih bagi setiap murid). PDF mesti mengandungi <b>teks</b>. PDF hasil imbasan (gambar) tidak dapat dibaca.</p></div>
+      <div class="l"><h3>Tab Muat naik → Pilih fail PDF</h3><p>Pilih satu atau beberapa fail (satu fail satu kelas), atau seret ke kotak putus-putus di komputer. App membaca setiap halaman dalam pelayar anda.</p></div>
+      <div class="l"><h3>Semak tajuk, kelas &amp; padanan</h3>
+        <p><b>Tajuk laporan</b> (cth. <i>PBD Akhir Tahun 2026</i>) dan <b>Kelas</b> (cth. <i>1 BERLIAN</i>) diisi automatik daripada PDF. Ubah jika perlu. Tajuk inilah yang dilihat oleh ibu bapa.</p>
+        <div class="warna">
+          <div><i style="background:#1e7a3a"></i><span><b>DELIMa ✓</b> — murid ditemui dalam senarai; ibu bapa boleh muat turun.</span></div>
+          <div><i style="background:#d93025"></i><span><b>Tiada dalam senarai</b> — laporan tetap disimpan, tetapi ibu bapa belum boleh membukanya. Tambah murid ke Sheet senarai; padanan dibuat semula secara automatik apabila ibu bapa log masuk (jika No. KP / nama sepadan).</span></div>
+          <div><i style="background:#e8a400"></i><span><b>Amaran kuning</b> — laporan dengan tajuk sama untuk kelas itu sudah wujud. Fail murid yang sama akan <b>diganti</b> dengan versi baharu.</span></div>
+        </div>
+      </div>
+      <div class="l"><h3>Tekan “Muat naik”</h3><p>PDF dipecahkan ikut murid dan dihantar ke Google Drive satu demi satu (bar kemajuan dipaparkan). Satu kelas 35 murid mengambil masa kira-kira 1–2 minit. Jangan tutup halaman sehingga selesai. Jika ada yang gagal, tekan <b>Muat naik</b> sekali lagi. Hanya yang gagal akan dicuba semula.</p></div>
+      <div class="l wa"><h3>Tetapan → Kongsi WhatsApp</h3><p>Mesej siap (pautan app, cara log masuk &amp; pautan panduan ini) dibuka dalam WhatsApp untuk dihantar ke group kelas atau kepada guru kelas.</p></div>
+    </div>
+
+    <h3 style="margin:26px 0 10px">C. Urus laporan</h3>
+    <div class="dua">
+      <div class="privasi">
+        <h3>Tab Laporan</h3>
+        <p>Laporan dikumpulkan ikut kelas &amp; tajuk. Cari nama atau No. KP, muat turun PDF mana-mana murid, padam seorang murid atau satu kelas sekali gus (fail dipindahkan ke Trash Drive).</p>
+        <h3>Laporan tanpa ID DELIMa</h3>
+        <p>Ditanda merah. Kemas kini Sheet senarai, kemudian tekan <b>Simpan &amp; uji</b> dalam Tetapan supaya senarai dibaca semula.</p>
+      </div>
+      <div class="privasi">
+        <h3>Tutup semakan ibu bapa</h3>
+        <p>Suis dalam Tetapan. Semasa ditutup, ibu bapa melihat mesej “Semakan laporan ditutup”. Admin masih boleh bekerja seperti biasa.</p>
+        <h3>Tambah admin</h3>
+        <p>Tetapan → Admin → <b>Tambah admin</b> → isi emel DELIMa guru (<code>g-…@moe-dl.edu.my</code>) → <b>Simpan senarai admin</b>. Admin boleh muat naik &amp; padam laporan semua kelas.</p>
+        <h3>Log</h3>
+        <p>Tab <code>Log</code> dalam Sheet PBDku merekod log masuk, muat turun, padam &amp; perubahan tetapan.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PEMASANGAN ============ -->
+<section id="pasang" style="padding-top:0">
+  <div class="bekas">
+    <span class="label-seksyen">Sekali sahaja</span>
+    <h2>Pemasangan untuk sekolah</h2>
+    <p class="sub">Dilakukan oleh guru ICT / admin sekolah. Ambil masa kira-kira 10 minit.</p>
+    <div class="langkah">
+      <div class="l penting"><h3>Gunakan akaun DELIMa guru</h3><p>Semua langkah di bawah <b>mesti</b> dibuat semasa log masuk dengan akaun DELIMa guru (<code>g-…@moe-dl.edu.my</code>), bukan Gmail atau emel lain. Hanya akaun dalam domain yang sama dengan murid membolehkan PBDku mengenal pasti akaun DELIMa anak yang log masuk. Fail laporan akan disimpan dalam Drive akaun ini.</p></div>
+      <div class="l"><h3>Cipta Google Sheet “PBDku”</h3><p>Di Google Drive, cipta Google Sheet baharu dan namakan <b>PBDku</b>. Kemudian <b>Extensions → Apps Script</b>.</p></div>
+      <div class="l"><h3>Salin kod</h3>
+        <ul>
+          <li>Ganti kandungan <code>Code.gs</code> dengan <code>Code.gs</code> dari <a href="https://github.com/g-03355699-tech/pbdku" target="_blank" rel="noopener">repo GitHub</a>. Tukar <code>NAMA_SEKOLAH</code> di bahagian atas.</li>
+          <li><b>+ → HTML</b>, namakan <code>Index</code>, tampal <code>Index.html</code>.</li>
+          <li>⚙ Project Settings → tandakan <i>Show "appsscript.json"</i> → ganti dengan <code>appsscript.json</code> dari repo.</li>
+        </ul></div>
+      <div class="l"><h3>Jalankan “pasang” &amp; beri kebenaran</h3>
+        <p>Pilih fungsi <code>pasang</code> → <b>Run</b>. Google meminta kebenaran untuk Sheets, Drive dan emel. Jika muncul <i>“Google hasn’t verified this app”</i>, tekan <b>Advanced → Go to PBDku (unsafe)</b> → <b>Allow</b>. Amaran ini hanya untuk pemilik skrip. Ibu bapa tidak akan melihatnya.</p>
+        <div class="kebenaran">
+          <b>Sheets</b><span>Simpan rekod laporan &amp; membaca Sheet senarai murid</span>
+          <b>Drive</b><span>Simpan fail PDF setiap murid dalam folder <i>PBDku - Laporan Murid</i></span>
+          <b>Emel</b><span>Mengenal pasti akaun DELIMa yang log masuk</span>
+        </div></div>
+      <div class="l"><h3>Deploy sebagai web app</h3>
+        <p><b>Deploy → New deployment</b> → ⚙ <b>Web app</b>:</p>
+        <div class="lakaran">
+          <div class="baris"><span class="anak-panah">Execute as</span> <span class="medan">Me (g-…@moe-dl.edu.my)</span></div>
+          <div class="baris"><span class="anak-panah">Who has access</span> <span class="medan">Anyone within Kementerian Pendidikan Malaysia</span></div>
+        </div>
+        <p>Tekan <b>Deploy</b> dan salin URL <code>…/exec</code>. Inilah pautan untuk ibu bapa.</p></div>
+      <div class="l"><h3>Buka app &amp; isi Tetapan</h3><p>Buka URL tadi. Anda akan masuk sebagai admin. Dalam tab <b>Tetapan</b>, sambungkan Sheet senarai murid dan tambah admin lain jika perlu. Kemudian ikut bahagian <a href="#admin">Guru / admin</a>.</p></div>
+      <div class="l"><h3>Kemas kini kod pada masa hadapan</h3><p>Tampal kod baharu → <b>Deploy → Manage deployments → ✏️ Edit → Version: New version → Deploy</b>. URL kekal sama.</p></div>
+    </div>
+    <div class="nota amaran"><b>Kenapa tidak boleh guna akaun Gmail untuk deploy?</b> Apabila web app dijalankan sebagai pemilik, Google hanya mendedahkan emel pengunjung yang berada dalam domain yang sama dengan pemilik. Jika dideploy dengan Gmail, PBDku tidak dapat mengenal pasti akaun DELIMa anak dan semua ibu bapa akan melihat “Sila log masuk dengan akaun DELIMa”.</div>
+  </div>
+</section>
+
+<!-- ============ PRIVASI ============ -->
+<section id="privasi" style="padding-top:0">
+  <div class="bekas">
+    <h2>Privasi &amp; keselamatan</h2>
+    <p class="sub">Laporan murid kekal dalam akaun DELIMa sekolah, bukan pada pelayan pembangun.</p>
+    <div class="privasi">
+      <h3>Di mana fail disimpan?</h3><p>Dalam folder <i>PBDku - Laporan Murid</i> (subfolder ikut kelas) di Google Drive akaun DELIMa yang memasang app. Fail <b>tidak dikongsi</b> kepada sesiapa. Ibu bapa menerima salinan melalui app selepas akaun mereka disahkan.</p>
+      <h3>Bagaimana ibu bapa disahkan?</h3><p>Google mengesahkan log masuk DELIMa. PBDku membandingkan emel tersebut dengan Sheet senarai murid, kemudian hanya membenarkan laporan yang No. KP / nama sepadan dengan murid itu. Setiap permintaan muat turun disemak semula di pelayan, jadi ID fail murid lain tidak boleh digunakan.</p>
+      <h3>Adakah PDF dihantar ke pihak ketiga?</h3><p>Tidak. PDF dibaca dan dipecahkan <b>dalam pelayar admin</b> (pustaka pdf.js &amp; pdf-lib), kemudian dihantar terus ke Google Apps Script sekolah. Tiada pelayan lain terlibat.</p>
+      <h3>Apa yang dikongsi dengan pembangun?</h3><p>Tiada. Pembangun tidak mempunyai akses kepada Sheet, Drive atau log sekolah anda.</p>
+      <h3>Jangan kongsi Sheet PBDku atau Sheet senarai secara awam</h3><p>Kedua-duanya mengandungi nama, No. KP dan ID DELIMa murid. Kongsi hanya kepada emel admin tertentu jika perlu.</p>
+      <h3>Tamat tahun / berhenti guna</h3><ul>
+        <li>Tutup semakan dalam Tetapan, atau padam laporan kelas dalam tab Laporan.</li>
+        <li>Untuk berhenti sepenuhnya: <b>Deploy → Manage deployments → Archive</b>. Fail &amp; Sheet kekal dalam Drive anda.</li></ul>
+      <h3>Hubungi</h3><p>Soalan atau laporan masalah: WhatsApp <a href="https://wa.me/60193002591" target="_blank" rel="noopener">019-300 2591</a> atau buka <a href="https://github.com/g-03355699-tech/pbdku/issues" target="_blank" rel="noopener">isu di GitHub</a>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ DERMA ============ -->
+<section id="derma" style="padding-top:0">
+  <div class="bekas">
+    <div class="pembangun">
+      <div class="m">Dibangunkan oleh<br><b>Ibrahim bin Kadri</b><br>PBDku adalah percuma. Jika ia membantu sekolah anda, sumbangan anda membantu penyelenggaraan dan ciri baharu.</div>
+      <button class="btn-derma" onclick="document.getElementById('qrDerma').classList.toggle('buka')"><svg class="ik" style="width:18px;height:18px"><use href="#i-hati"/></svg>Derma</button>
+      <div class="derma-qr" id="qrDerma">
+        <img src="derma-qr.png" alt="QR DuitNow Ibrahim bin Kadri" loading="lazy">
+        <div style="font-size:.82rem;color:var(--kelabu)">Imbas dengan app bank atau e-wallet anda (DuitNow QR).</div>
+        <a href="https://wa.me/60193002591?text=Salam%2C%20saya%20ingin%20menderma%20untuk%20app%20PBDku." target="_blank" rel="noopener" style="display:inline-block;margin-top:10px;font-weight:600">Hubungi melalui WhatsApp</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>Dibangunkan oleh <b>Ibrahim bin Kadri (9M2IBR)</b> · Lesen <a href="https://github.com/g-03355699-tech/pbdku/blob/main/LICENSE">MIT</a> · <a href="https://github.com/g-03355699-tech/pbdku">Kod sumber</a></footer>
+
+<script src="config.js"></script>
+<script src="qrcode.js"></script>
+<script>
+  (function () {
+    var APP = window.APP_URL || '';
+    var btn = document.getElementById('btnBuka');
+    var qr = document.getElementById('kodQr');
+    if (!APP) {
+      btn.textContent = 'App belum diterbitkan';
+      btn.className += ' mati';
+      qr.innerHTML = '<div class="tiada">Kod QR akan dipaparkan selepas app diterbitkan.</div>';
+      return;
+    }
+    btn.href = APP;
+    try {
+      var q = qrcode(0, 'M');
+      q.addData(APP);
+      q.make();
+      qr.innerHTML = q.createSvgTag({ cellSize: 4, margin: 2, scalable: true });
+    } catch (e) { qr.innerHTML = ''; }
+  })();
+</script>
+</body>
+</html>
