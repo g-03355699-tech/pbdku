@@ -96,6 +96,147 @@ async function muatTurun(btn, id) {
   }, 'Memuat turun…');
 }
 
+/* ---------- Pemapar PDF (pdf.js) — jelas & boleh zoom ---------- */
+const PV = { doc: null, id: '', zum: 1, halaman: [], tugas: [], pemasa: null, cubit: null, ketikAkhir: 0 };
+const ZUM_MIN = 0.5, ZUM_MAX = 5;
+
+async function muatPdfjs() {
+  await muatSkrip(PDFJS_URL);
+  window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_URL.replace('pdf.min.js', 'pdf.worker.min.js');
+}
+
+async function bukaPdf(btn, id, tajuk) {
+  const p = $('pemapar');
+  $('pTajuk').textContent = tajuk || 'Laporan';
+  $('pKet').textContent = (D.murid && D.murid.nama) || '';
+  $('pHalaman').innerHTML = '<div class="muat-p"><div class="putar"></div>Memuatkan laporan…</div>';
+  $('pMuatTurun').onclick = () => { tutupPdf(); muatTurun(btn.nextElementSibling || btn, id); };
+  p.classList.remove('tersembunyi');
+  document.body.style.overflow = 'hidden';
+  PV.id = id; PV.zum = 1; kemasZumLabel();
+  try {
+    const [r] = await Promise.all([run('lihatLaporan', id), muatPdfjs()]);
+    if (PV.id !== id) return;
+    const bin = atob(r.data), u8 = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+    if (PV.doc) { try { PV.doc.destroy(); } catch (e) {} }
+    PV.doc = await pdfjsLib.getDocument({ data: u8 }).promise;
+    $('pKet').textContent = ((D.murid && D.murid.nama) ? D.murid.nama + ' · ' : '') + PV.doc.numPages + ' halaman';
+    $('pHalaman').innerHTML = '';
+    PV.halaman = [];
+    for (let n = 1; n <= PV.doc.numPages; n++) {
+      const hal = await PV.doc.getPage(n);
+      const cv = document.createElement('canvas');
+      $('pHalaman').appendChild(cv);
+      PV.halaman.push({ hal, cv, asal: hal.getViewport({ scale: 1 }) });
+    }
+    lukisPdf();
+    const pt = $('pPetua'); pt.style.opacity = 1; setTimeout(() => { pt.style.opacity = 0; }, 3500);
+  } catch (e) {
+    $('pHalaman').innerHTML = `<div class="muat-p">Laporan tidak dapat dipaparkan.<br><small>${esc(e.message)}</small><br><br>Gunakan butang muat turun di atas.</div>`;
+  }
+}
+
+function tutupPdf() {
+  $('pemapar').classList.add('tersembunyi');
+  document.body.style.overflow = '';
+  PV.id = ''; PV.tugas.forEach(t => { try { t.cancel(); } catch (e) {} }); PV.tugas = [];
+}
+
+/** Lebar CSS setiap halaman = lebar skrin x zum; piksel kanvas = CSS x devicePixelRatio (teks tajam). */
+function lukisPdf() {
+  if (!PV.halaman.length) return;
+  const lebarSkrin = Math.max(200, $('pSkrol').clientWidth - 16);
+  const dpr = Math.min(window.devicePixelRatio || 1, 3);
+  PV.tugas.forEach(t => { try { t.cancel(); } catch (e) {} }); PV.tugas = [];
+  $('pHalaman').style.transform = '';
+  PV.halaman.forEach(h => {
+    const skalaCss = lebarSkrin / h.asal.width * PV.zum;
+    const w = h.asal.width * skalaCss, ht = h.asal.height * skalaCss;
+    // had piksel kanvas (iOS ~16 juta piksel)
+    let skalaPx = skalaCss * dpr;
+    const maks = 16e6 / (h.asal.width * h.asal.height);
+    if (skalaPx * skalaPx > maks) skalaPx = Math.sqrt(maks);
+    const vp = h.hal.getViewport({ scale: skalaPx });
+    const cv = h.cv;
+    cv.style.width = w + 'px'; cv.style.height = ht + 'px';
+    const baru = document.createElement('canvas');
+    baru.width = Math.floor(vp.width); baru.height = Math.floor(vp.height);
+    const t = h.hal.render({ canvasContext: baru.getContext('2d'), viewport: vp });
+    PV.tugas.push(t);
+    t.promise.then(() => {
+      cv.width = baru.width; cv.height = baru.height;
+      cv.getContext('2d').drawImage(baru, 0, 0);
+    }).catch(() => {});
+  });
+}
+
+function kemasZumLabel() { $('pZum').textContent = Math.round(PV.zum * 100) + '%'; }
+
+/** Tukar zum sambil kekalkan titik (cx, cy) dalam kotak skrol di tempat yang sama. */
+function setZumPdf(z, cx, cy) {
+  z = Math.min(ZUM_MAX, Math.max(ZUM_MIN, z));
+  const sk = $('pSkrol');
+  if (cx === undefined) { cx = sk.clientWidth / 2; cy = sk.clientHeight / 2; }
+  const nisbah = z / PV.zum;
+  const x = (sk.scrollLeft + cx) * nisbah - cx, y = (sk.scrollTop + cy) * nisbah - cy;
+  PV.zum = z; kemasZumLabel(); lukisPdf();
+  sk.scrollLeft = Math.max(0, x); sk.scrollTop = Math.max(0, y);
+}
+function zumPdf(f) { setZumPdf(PV.zum * f); }
+
+(() => {
+  const sk = $('pSkrol'), isi = $('pHalaman');
+  const jarak = t => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+  const tengah = t => { const r = sk.getBoundingClientRect(); return { x: (t[0].clientX + t[1].clientX) / 2 - r.left, y: (t[0].clientY + t[1].clientY) / 2 - r.top }; };
+  sk.addEventListener('touchstart', e => {
+    if (e.touches.length === 2) {
+      PV.cubit = { d0: jarak(e.touches), z0: PV.zum, c: tengah(e.touches), sl: sk.scrollLeft, st: sk.scrollTop, f: 1 };
+      e.preventDefault();
+    } else if (e.touches.length === 1) {
+      const kini = Date.now();
+      if (kini - PV.ketikAkhir < 300) {           // ketik dua kali
+        const r = sk.getBoundingClientRect();
+        setZumPdf(PV.zum > 1.4 ? 1 : 2.5, e.touches[0].clientX - r.left, e.touches[0].clientY - r.top);
+        e.preventDefault(); PV.ketikAkhir = 0;
+      } else PV.ketikAkhir = kini;
+    }
+  }, { passive: false });
+  sk.addEventListener('touchmove', e => {
+    if (!PV.cubit || e.touches.length !== 2) return;
+    e.preventDefault();
+    const c = PV.cubit;
+    let f = jarak(e.touches) / c.d0;
+    f = Math.min(ZUM_MAX / c.z0, Math.max(ZUM_MIN / c.z0, f));
+    c.f = f;
+    // pratonton pantas dengan CSS transform; lukis semula (tajam) selepas jari diangkat
+    isi.style.transformOrigin = `${c.sl + c.c.x}px ${c.st + c.c.y}px`;
+    isi.style.transform = `scale(${f})`;
+    $('pZum').textContent = Math.round(c.z0 * f * 100) + '%';
+  }, { passive: false });
+  sk.addEventListener('touchend', e => {
+    if (!PV.cubit || e.touches.length) return;
+    const c = PV.cubit; PV.cubit = null;
+    isi.style.transform = ''; isi.style.transformOrigin = '0 0';
+    PV.zum = c.z0; setZumPdf(c.z0 * c.f, c.c.x, c.c.y);
+  });
+  // Komputer: Ctrl + roda tetikus
+  sk.addEventListener('wheel', e => {
+    if (!e.ctrlKey) return;
+    e.preventDefault();
+    const r = sk.getBoundingClientRect();
+    setZumPdf(PV.zum * (e.deltaY < 0 ? 1.15 : 1 / 1.15), e.clientX - r.left, e.clientY - r.top);
+  }, { passive: false });
+  document.addEventListener('keydown', e => {
+    if ($('pemapar').classList.contains('tersembunyi')) return;
+    if (e.key === 'Escape') tutupPdf();
+    else if (e.key === '+' || e.key === '=') zumPdf(1.25);
+    else if (e.key === '-') zumPdf(1 / 1.25);
+  });
+  let pemasaSaiz;
+  window.addEventListener('resize', () => { clearTimeout(pemasaSaiz); pemasaSaiz = setTimeout(() => { if (PV.id) lukisPdf(); }, 200); });
+})();
+
 /* ---------- Mula ---------- */
 let D = null;
 async function mula() {
@@ -151,7 +292,10 @@ function bukaIbuBapa() {
     <div class="laporan-kad">
       <div class="fail">${ik('pdf')}<i>PDF</i></div>
       <div class="isi"><b>${esc(l.tajuk)}</b><span>${esc(l.kelas)} · ${tarikhPapar(l.masa)}${l.saiz ? ' · ' + l.saiz + ' KB' : ''}</span></div>
-      <button class="btn" onclick="muatTurun(this,'${esc(l.id)}')">${ik('muatturun')}Muat turun</button>
+      <div class="aksi-l">
+        <button class="btn garis-p" onclick="bukaPdf(this,'${esc(l.id)}','${esc(l.tajuk.replace(/['"\\]/g, ''))}')">${ik('mata')}Lihat</button>
+        <button class="btn" onclick="muatTurun(this,'${esc(l.id)}')">${ik('muatturun')}Muat turun</button>
+      </div>
     </div>`).join('')
     : '<div class="kosong">Belum ada laporan untuk anak anda.<br>Sila semak semula kemudian.</div>';
   paparan('vIbuBapa');
@@ -423,12 +567,12 @@ async function muatLaporan() {
 }
 
 const STATUS_L = {
-  turun: { label: 'Dimuat turun', kelas: 'selesai', lencana: 'selesai' },
-  buka:  { label: 'Dibuka, belum muat turun', kelas: 'separa', lencana: 'separa' },
+  turun: { label: 'Dilihat / dimuat turun', kelas: 'selesai', lencana: 'selesai' },
+  buka:  { label: 'Log masuk, belum lihat laporan', kelas: 'separa', lencana: 'separa' },
   belum: { label: 'Belum dibuka', kelas: 'belum', lencana: 'belum' },
   tiada: { label: 'Tiada ID DELIMa', kelas: 'tiada', lencana: 'kelabu' }
 };
-const statusL = r => r.bilMuatTurun ? 'turun' : !r.delima ? 'tiada' : r.bilMasuk ? 'buka' : 'belum';
+const statusL = r => (r.bilMuatTurun || r.bilLihat) ? 'turun' : !r.delima ? 'tiada' : r.bilMasuk ? 'buka' : 'belum';
 const masaPapar = s => { const m = /T(\d{2}):(\d{2})/.exec(s || ''); return tarikhPapar(s) + (m ? ', ' + m[1] + ':' + m[2] : ''); };
 let tapisL = 'semua', kunciL = [];
 
@@ -439,11 +583,11 @@ function lukisLaporan() {
   L.forEach(r => kira[statusL(r)]++);
   const pc = n => L.length ? Math.round(n / L.length * 100) : 0;
   $('statLaporan').innerHTML = `
-    <div class="hijau"><b>${kira.turun} <small>${pc(kira.turun)}%</small></b><span>Dimuat turun</span></div>
-    <div class="kuning"><b>${kira.buka}</b><span>Dibuka, belum muat turun</span></div>
+    <div class="hijau"><b>${kira.turun} <small>${pc(kira.turun)}%</small></b><span>Dilihat / dimuat turun</span></div>
+    <div class="kuning"><b>${kira.buka}</b><span>Log masuk, belum lihat laporan</span></div>
     <div class="merah"><b>${kira.belum}</b><span>Belum dibuka</span></div>
     <div><b>${kira.tiada}</b><span>Tiada ID DELIMa</span></div>`;
-  $('tapisStatus').innerHTML = [['semua', 'Semua', L.length], ['turun', 'Dimuat turun', kira.turun], ['buka', 'Dibuka sahaja', kira.buka],
+  $('tapisStatus').innerHTML = [['semua', 'Semua', L.length], ['turun', 'Dilihat / dimuat turun', kira.turun], ['buka', 'Log masuk sahaja', kira.buka],
     ['belum', 'Belum dibuka', kira.belum], ['tiada', 'Tiada DELIMa', kira.tiada]]
     .map(([k, t, n]) => `<button class="${tapisL === k ? 'on' : ''}" onclick="tapisL='${k}';lukisLaporan()">${t}<i>${n}</i></button>`).join('');
 
@@ -457,19 +601,20 @@ function lukisLaporan() {
   $('ketLaporan').textContent = kunci.length ? kunci.length + ' kumpulan' : '';
   $('senaraiLaporan').innerHTML = kunci.length ? kunci.map(k => {
     const s = kump[k].sort((a, b) => a.nama.localeCompare(b.nama)), [tajuk, kls] = k.split('\u0001');
-    const penuh = semuaIkutK[k], turun = penuh.filter(r => r.bilMuatTurun).length, p = Math.round(turun / penuh.length * 100);
-    const belumTurun = penuh.filter(r => !r.bilMuatTurun).length;
+    const penuh = semuaIkutK[k], turun = penuh.filter(r => statusL(r) === 'turun').length, p = Math.round(turun / penuh.length * 100);
+    const belumTurun = penuh.length - turun;
     return `<details class="lipat" ${q || tapisL !== 'semua' ? 'open' : ''}><summary>
         <div class="ikon-mod" style="width:38px;height:38px;border-radius:11px;background:#ddf2ef;color:var(--navy);display:grid;place-items:center;flex-shrink:0">${ik('kelas')}</div>
         <div style="min-width:0;flex:1"><b>${esc(kls)}</b><span class="k">${esc(tajuk)} · ${penuh.length} murid</span>
-          <div class="kemajuan-kelas"><div class="trek"><div class="isi ${p === 100 ? 'penuh' : ''}" style="width:${p}%"></div></div><span>${turun}/${penuh.length} dimuat turun</span></div></div>
+          <div class="kemajuan-kelas"><div class="trek"><div class="isi ${p === 100 ? 'penuh' : ''}" style="width:${p}%"></div></div><span>${turun}/${penuh.length} sudah lihat</span></div></div>
         <span class="anak">${ik('anak')}</span></summary>
       <div class="badan">
         ${s.map(r => { const st = statusL(r), S = STATUS_L[st];
-          const ket = st === 'turun' ? `${ik('muatturun')}Dimuat turun ${masaPapar(r.akhirMuatTurun)}${r.bilMuatTurun > 1 ? ` (${r.bilMuatTurun}\u00D7)` : ''}`
+          const ket = st === 'turun' ? [r.bilMuatTurun ? `${ik('muatturun')}Dimuat turun ${masaPapar(r.akhirMuatTurun)}${r.bilMuatTurun > 1 ? ` (${r.bilMuatTurun}\u00D7)` : ''}` : '',
+              r.bilLihat ? `${ik('mata')}Dilihat ${masaPapar(r.akhirLihat)}${r.bilLihat > 1 ? ` (${r.bilLihat}\u00D7)` : ''}` : ''].filter(Boolean).join(' &nbsp;\u00B7&nbsp; ')
             : st === 'buka' ? `${ik('mata')}Log masuk terakhir ${masaPapar(r.akhirMasuk)}` : '';
           return `<div class="rekod rl ${S.kelas}">
-          <div class="atas-r"><div class="tajuk-r">${esc(r.nama)}</div><span class="status ${S.lencana}">${st === 'turun' ? 'Dimuat turun' : st === 'buka' ? 'Dibuka' : S.label}</span></div>
+          <div class="atas-r"><div class="tajuk-r">${esc(r.nama)}</div><span class="status ${S.lencana}">${st === 'turun' ? (r.bilMuatTurun ? 'Dimuat turun' : 'Dilihat') : st === 'buka' ? 'Log masuk' : S.label}</span></div>
           <div class="meta">${r.kp ? `<span>${ik('ic')}${esc(kpSeparuh(r.kp))}</span>` : ''}
             ${r.delima ? `<span>${ik('emel')}${esc(r.delima)}</span>` : ''}</div>
           ${ket ? `<div class="meta ket-st ${st}">${ket}</div>` : ''}
@@ -477,7 +622,7 @@ function lukisLaporan() {
             <button class="pautan" onclick="muatTurun(this,'${esc(r.id)}')">${ik('muatturun')}PDF</button>
             <button class="padam" onclick="padam(['${esc(r.id)}'],'laporan ${esc(r.nama.replace(/['"\\]/g, ''))}')">${ik('padam')}Padam</button></div>
         </div>`; }).join('')}
-        ${belumTurun ? `<button class="btn sekunder" onclick="salinBelum(${kunci.indexOf(k)})">${ik('tampal')}Salin senarai ${belumTurun} murid belum muat turun</button>` : ''}
+        ${belumTurun ? `<button class="btn sekunder" onclick="salinBelum(${kunci.indexOf(k)})">${ik('tampal')}Salin senarai ${belumTurun} murid belum lihat laporan</button>` : ''}
         <button class="btn bahaya" onclick="padam(${esc(JSON.stringify(s.map(r => r.id)))},'${s.length} laporan ${esc(kls.replace(/['"\\]/g, ''))}')">${ik('padam')}Padam ${s.length === penuh.length ? 'semua laporan kelas ini' : s.length + ' laporan yang dipaparkan'}</button>
       </div></details>`;
   }).join('') : `<div class="kosong">${q || tapisL !== 'semua' ? 'Tiada padanan.' : 'Belum ada laporan. Muat naik di tab Muat naik.'}</div>`;
@@ -486,8 +631,8 @@ function lukisLaporan() {
 /** Salin senarai murid yang belum muat turun (untuk peringatan dalam group WhatsApp kelas). */
 function salinBelum(n) {
   const [tajuk, kls] = kunciL[n].split('\u0001');
-  const s = L.filter(r => r.tajuk === tajuk && r.kelas === kls && !r.bilMuatTurun).sort((a, b) => a.nama.localeCompare(b.nama));
-  const teks = `*${tajuk} \u2014 ${kls}*\nLaporan belum dimuat turun (${s.length} murid):\n` +
+  const s = L.filter(r => r.tajuk === tajuk && r.kelas === kls && statusL(r) !== 'turun').sort((a, b) => a.nama.localeCompare(b.nama));
+  const teks = `*${tajuk} \u2014 ${kls}*\nLaporan belum dilihat / dimuat turun (${s.length} murid):\n` +
     s.map((r, i) => `${i + 1}. ${r.nama}`).join('\n') +
     `\n\nSila log masuk dengan akaun DELIMa anak di:\n${D.url}`;
   const ta = document.createElement('textarea'); ta.value = teks; ta.style.position = 'fixed'; ta.style.opacity = '0';

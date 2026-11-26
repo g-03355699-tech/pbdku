@@ -16,7 +16,7 @@
  *    Who has access:  Anyone within Kementerian Pendidikan Malaysia (moe-dl.edu.my)
  */
 
-const VERSI = '1.0.6';
+const VERSI = '1.0.7';
 const NAMA_SEKOLAH = 'SM Sains Kuala Selangor';   // tukar mengikut sekolah anda
 const FAVICON_URL = 'https://raw.githubusercontent.com/g-03355699-tech/pbdku/main/docs/ikon/ikon-32.png';
 const NAMA_FOLDER = 'PBDku - Laporan Murid';
@@ -122,7 +122,12 @@ function senaraiPratonton() {
 }
 
 /** Muat turun satu laporan (base64). Ibu bapa hanya boleh ambil fail anak sendiri. */
-function muatTurun(fileId) {
+function muatTurun(fileId) { return ambilLaporan_(fileId, 'MUAT_TURUN'); }
+
+/** Pratonton (lihat dalam app) satu laporan — semakan akses sama seperti muat turun. */
+function lihatLaporan(fileId) { return ambilLaporan_(fileId, 'LIHAT'); }
+
+function ambilLaporan_(fileId, jenis) {
   const emel = emelSemasa_();
   if (!emel) throw new Error('TIADA_AKSES');
   const baris = bacaLaporan_().find(r => r.fileId === fileId);
@@ -137,7 +142,7 @@ function muatTurun(fileId) {
   }
 
   const blob = DriveApp.getFileById(fileId).getBlob();
-  log_(emel, admin ? 'ADMIN_MUAT_TURUN' : 'MUAT_TURUN', `${baris.nama} · ${baris.tajuk}`, fileId);
+  log_(emel, (admin ? 'ADMIN_' : '') + jenis, `${baris.nama} · ${baris.tajuk}`, fileId);
   return {
     namaFail: `${bersihNamaFail_(baris.tajuk)}_${bersihNamaFail_(baris.nama)}.pdf`,
     data: Utilities.base64Encode(blob.getBytes())
@@ -222,20 +227,22 @@ function senaraiLaporan() {
     const delima = r.delima || (r.kp && delimaIkutKp[r.kp]) || '';
     const m = delima ? st.masuk[delima] : null;
     const d = st.fail[r.fileId] || (delima && st.emelTajuk[delima + '|' + r.tajuk]) || null;
+    const l = st.lihat[r.fileId] || null;
     return {
       id: r.fileId, tajuk: r.tajuk, kelas: r.kelas, kp: r.kp, nama: r.nama,
       delima, masa: tarikhIso_(r.masa), saiz: r.saiz,
       bilMasuk: m ? m.kali : 0, akhirMasuk: m ? tarikhIso_(m.akhir) : '',
-      bilMuatTurun: d ? d.kali : 0, akhirMuatTurun: d ? tarikhIso_(d.akhir) : ''
+      bilMuatTurun: d ? d.kali : 0, akhirMuatTurun: d ? tarikhIso_(d.akhir) : '',
+      bilLihat: l ? l.kali : 0, akhirLihat: l ? tarikhIso_(l.akhir) : ''
     };
   });
 }
 
 /** Ringkasan aktiviti ibu bapa daripada tab Log (log masuk ikut emel, muat turun ikut fail). */
 function statusIbuBapa_() {
-  const masuk = {}, fail = {}, emelTajuk = {};
+  const masuk = {}, fail = {}, emelTajuk = {}, lihat = {};
   const sh = SpreadsheetApp.getActive().getSheetByName(TAB.log);
-  if (!sh || sh.getLastRow() < 2) return { masuk, fail, emelTajuk };
+  if (!sh || sh.getLastRow() < 2) return { masuk, fail, emelTajuk, lihat };
   const tambah = (peta, k, masa) => {
     const x = peta[k] = peta[k] || { kali: 0, akhir: masa };
     x.kali++; if (masa > x.akhir) x.akhir = masa;
@@ -244,12 +251,13 @@ function statusIbuBapa_() {
     const masa = r[0] instanceof Date ? r[0] : new Date(r[0]);
     const emel = String(r[1]).toLowerCase(), t = r[2];
     if (t === 'LOG_MASUK') tambah(masuk, emel, masa);
+    else if (t === 'LIHAT' && r[4]) tambah(lihat, String(r[4]), masa);
     else if (t === 'MUAT_TURUN') {
       if (r[4]) tambah(fail, String(r[4]), masa);
       else tambah(emelTajuk, emel + '|' + String(r[3]).split(' \u00B7 ').slice(1).join(' \u00B7 '), masa);   // rekod lama
     }
   });
-  return { masuk, fail, emelTajuk };
+  return { masuk, fail, emelTajuk, lihat };
 }
 
 /** Padam laporan (fail ke Trash + buang baris). */
